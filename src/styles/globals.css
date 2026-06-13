@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-bg-0: #060608;
+    --color-bg-1: #0d0d10;
+    --color-bg-2: #111114;
+    --color-bg-3: #16161a;
+    --color-bg-4: #1c1c21;
+    --color-bg-modal: #0f0f13;
+
+    --color-border-0: #1a1a1f;
+    --color-border-1: #222228;
+    --color-border-2: #2d2d35;
+
+    --color-text-0: #f2f2f7;
+    --color-text-1: #a0a0b0;
+    --color-text-2: #5a5a6e;
+    --color-text-3: #363644;
+
+    --color-accent: #10b981;
+    --color-accent-dim: #059669;
+    --color-accent-glow: rgba(16,185,129,0.08);
+    --color-accent-border: rgba(16,185,129,0.2);
+
+    --color-urgent: #f87171;
+    --color-urgent-bg: rgba(248,113,113,0.07);
+    --color-urgent-border: rgba(248,113,113,0.15);
+
+    --color-reply: #60a5fa;
+    --color-reply-bg: rgba(96,165,250,0.07);
+    --color-reply-border: rgba(96,165,250,0.15);
+
+    --color-fyi: #a78bfa;
+    --color-fyi-bg: rgba(167,139,250,0.07);
+    --color-fyi-border: rgba(167,139,250,0.15);
+
+    --color-newsletter: #94a3b8;
+    --color-newsletter-bg: rgba(148,163,184,0.07);
+    --color-newsletter-border: rgba(148,163,184,0.15);
+
+    --font-sans: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-text-0);
+    background: var(--color-bg-0);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@utility text-display { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+@utility text-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+@utility text-body { font-size: 13px; font-weight: 400; }
+@utility text-small { font-size: 12px; font-weight: 400; }
+@utility text-micro { font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
+@utility text-mono { font-family: var(--font-mono); font-size: 11px; }
