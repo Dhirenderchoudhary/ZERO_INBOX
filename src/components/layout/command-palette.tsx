@@ -1,87 +1,214 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Command } from 'cmdk';
 import { useRouter } from 'next/navigation';
-import { Inbox, Calendar, Bot, Send, Star, PenSquare } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Mail, Calendar, Bot, Plus, Cpu, RefreshCw,
+  Inbox, Star, ArrowRight, Hash
+} from 'lucide-react';
+
+const COMMANDS = [
+  {
+    group: 'Actions',
+    items: [
+      { icon: Mail,      label: 'Compose new email',    hint: 'C',   event: 'compose' },
+      { icon: Plus,      label: 'New calendar event',   hint: '',    event: 'new-event' },
+      { icon: Cpu,       label: 'AI Triage inbox',      hint: '',    event: 'triage' },
+      { icon: RefreshCw, label: 'Refresh inbox',        hint: '',    event: 'refresh' },
+    ],
+  },
+  {
+    group: 'Navigate',
+    items: [
+      { icon: Inbox,    label: 'Go to Inbox',     hint: 'G I', route: '/inbox' },
+      { icon: Star,     label: 'Go to Starred',   hint: '',    route: '/inbox?f=starred' },
+      { icon: Calendar, label: 'Go to Calendar',  hint: 'G C', route: '/calendar' },
+      { icon: Bot,      label: 'Go to Agent',     hint: 'G A', route: '/agent' },
+    ],
+  },
+  {
+    group: 'Filter',
+    items: [
+      { icon: Hash, label: 'Show Urgent',       hint: '', route: '/inbox?p=urgent' },
+      { icon: Hash, label: 'Show Needs Reply',  hint: '', route: '/inbox?p=needs_reply' },
+      { icon: Hash, label: 'Show FYI',          hint: '', route: '/inbox?p=fyi' },
+    ],
+  },
+];
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    const onOpen = () => setOpen(true);
-    const onClose = () => setOpen(false);
-    
-    window.addEventListener('cmd-k', onOpen);
-    window.addEventListener('close-modals', onClose);
-    
+    const onToggle = () => setOpen(o => !o);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setOpen(o => !o);
+      }
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('cmd-k', onToggle);
     return () => {
-      window.removeEventListener('cmd-k', onOpen);
-      window.removeEventListener('close-modals', onClose);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('cmd-k', onToggle);
     };
   }, []);
 
-  if (!open) return null;
+  const run = useCallback((item: { route?: string; event?: string }) => {
+    setOpen(false);
+    setSearch('');
+    setTimeout(() => {
+      if (item.route) router.push(item.route);
+      else if (item.event) window.dispatchEvent(new CustomEvent(item.event));
+    }, 80);
+  }, [router]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
-        onClick={() => setOpen(false)} 
-      />
-      
-      <Command 
-        className="relative w-full max-w-lg rounded-xl shadow-2xl overflow-hidden"
-        style={{ background: 'var(--color-bg-2)', border: '1px solid var(--color-border-1)' }}
-        label="Global Command Menu"
-      >
-        <Command.Input 
-          autoFocus 
-          placeholder="Type a command or search..." 
-          className="w-full px-4 py-4 outline-none text-base bg-transparent border-b"
-          style={{ borderColor: 'var(--color-border-0)', color: 'var(--color-text-0)' }}
-        />
-        
-        <Command.List className="max-h-[300px] overflow-y-auto p-2">
-          <Command.Empty className="py-6 text-center text-sm" style={{ color: 'var(--color-text-2)' }}>
-            No results found.
-          </Command.Empty>
-          
-          <Command.Group heading="Navigation" className="px-2 py-1 text-xs font-semibold" style={{ color: 'var(--color-text-2)' }}>
-            <Command.Item 
-              onSelect={() => { router.push('/inbox'); setOpen(false); }}
-              className="flex items-center gap-2 px-3 py-2 mt-1 rounded-md cursor-pointer data-[selected=true]:bg-[var(--color-bg-3)] data-[selected=true]:text-[var(--color-text-0)]"
-              style={{ color: 'var(--color-text-1)' }}
-            >
-              <Inbox size={14} /> Go to Inbox
-            </Command.Item>
-            <Command.Item 
-              onSelect={() => { router.push('/calendar'); setOpen(false); }}
-              className="flex items-center gap-2 px-3 py-2 mt-1 rounded-md cursor-pointer data-[selected=true]:bg-[var(--color-bg-3)] data-[selected=true]:text-[var(--color-text-0)]"
-              style={{ color: 'var(--color-text-1)' }}
-            >
-              <Calendar size={14} /> Go to Calendar
-            </Command.Item>
-            <Command.Item 
-              onSelect={() => { router.push('/agent'); setOpen(false); }}
-              className="flex items-center gap-2 px-3 py-2 mt-1 rounded-md cursor-pointer data-[selected=true]:bg-[var(--color-bg-3)] data-[selected=true]:text-[var(--color-text-0)]"
-              style={{ color: 'var(--color-text-1)' }}
-            >
-              <Bot size={14} /> Chat with Agent
-            </Command.Item>
-          </Command.Group>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-start justify-center"
+          style={{ paddingTop: '18vh', background: 'var(--bg-overlay)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.12 }}
+          onClick={() => setOpen(false)}
+        >
+          <motion.div
+            className="w-full max-w-[520px] rounded-[14px] overflow-hidden"
+            style={{
+              background: 'var(--bg-modal)',
+              border: '1px solid var(--border-2)',
+              boxShadow: '0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset',
+            }}
+            initial={{ opacity: 0, scale: 0.96, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -8 }}
+            transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
+            onClick={e => e.stopPropagation()}
+          >
+            <Command shouldFilter loop>
+              {/* Search input */}
+              <div
+                className="flex items-center gap-3 px-4 py-3.5"
+                style={{ borderBottom: '1px solid var(--border-1)' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path d="M6.5 1a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zm4.776 5.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0zM14.354 13.646l-3-3a.5.5 0 0 0-.708.708l3 3a.5.5 0 0 0 .708-.708z"
+                    fill="var(--text-2)" />
+                </svg>
+                <Command.Input
+                  autoFocus
+                  placeholder="Search commands..."
+                  value={search}
+                  onValueChange={setSearch}
+                  className="flex-1 outline-none bg-transparent"
+                  style={{
+                    color: 'var(--text-0)',
+                    fontSize: '14px',
+                    fontFamily: 'var(--font-sans)',
+                    caretColor: 'var(--accent)',
+                  }}
+                />
+                <kbd
+                  className="t-mono px-1.5 py-0.5 rounded text-[10px]"
+                  style={{ background: 'var(--bg-4)', color: 'var(--text-3)', border: '1px solid var(--border-2)' }}
+                >
+                  Esc
+                </kbd>
+              </div>
 
-          <Command.Group heading="Actions" className="px-2 py-1 mt-2 text-xs font-semibold" style={{ color: 'var(--color-text-2)' }}>
-            <Command.Item 
-              onSelect={() => { window.dispatchEvent(new CustomEvent('compose')); setOpen(false); }}
-              className="flex items-center gap-2 px-3 py-2 mt-1 rounded-md cursor-pointer data-[selected=true]:bg-[var(--color-accent-glow)] data-[selected=true]:text-[var(--color-accent)]"
-              style={{ color: 'var(--color-text-1)' }}
-            >
-              <PenSquare size={14} /> Compose Email
-            </Command.Item>
-          </Command.Group>
-        </Command.List>
-      </Command>
-    </div>
+              {/* Results */}
+              <Command.List
+                className="overflow-y-auto py-2"
+                style={{ maxHeight: '320px' }}
+              >
+                <Command.Empty
+                  className="py-10 text-center t-small"
+                  style={{ color: 'var(--text-3)' }}
+                >
+                  No results for &ldquo;{search}&rdquo;
+                </Command.Empty>
+
+                {COMMANDS.map(group => (
+                  <Command.Group
+                    key={group.group}
+                    heading={group.group}
+                    className="px-2"
+                  >
+                    {group.items.map(item => (
+                      <Command.Item
+                        key={item.label}
+                        value={item.label}
+                        onSelect={() => run(item)}
+                        className="flex items-center gap-3 px-3 py-2 rounded-[7px] cursor-pointer"
+                      >
+                        <div
+                          className="w-6 h-6 rounded-[5px] flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'var(--bg-4)' }}
+                        >
+                          <item.icon size={12} style={{ color: 'var(--text-2)' }} />
+                        </div>
+                        <span className="flex-1 t-body">{item.label}</span>
+                        <div className="flex items-center gap-1.5">
+                          {item.hint && (
+                            <span
+                              className="t-mono text-[10px] px-1.5 py-0.5 rounded"
+                              style={{
+                                background: 'var(--bg-4)',
+                                color: 'var(--text-3)',
+                                border: '1px solid var(--border-1)',
+                              }}
+                            >
+                              {item.hint}
+                            </span>
+                          )}
+                          <ArrowRight size={12} style={{ color: 'var(--text-3)' }} className="opacity-0 group-data-[selected]:opacity-100" />
+                        </div>
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                ))}
+              </Command.List>
+
+              {/* Footer */}
+              <div
+                className="flex items-center gap-4 px-4 py-2.5"
+                style={{ borderTop: '1px solid var(--border-0)' }}
+              >
+                {[
+                  { keys: ['↑', '↓'], label: 'navigate' },
+                  { keys: ['↵'], label: 'select' },
+                  { keys: ['Esc'], label: 'close' },
+                ].map(({ keys, label }) => (
+                  <div key={label} className="flex items-center gap-1">
+                    {keys.map(k => (
+                      <kbd
+                        key={k}
+                        className="t-mono text-[10px] px-1.5 py-px rounded"
+                        style={{
+                          background: 'var(--bg-4)',
+                          color: 'var(--text-3)',
+                          border: '1px solid var(--border-2)',
+                        }}
+                      >
+                        {k}
+                      </kbd>
+                    ))}
+                    <span className="t-micro" style={{ color: 'var(--text-3)' }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </Command>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

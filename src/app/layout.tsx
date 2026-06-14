@@ -1,7 +1,12 @@
 import "@/styles/globals.css";
 import { type Metadata } from "next";
 import { TRPCReactProvider } from "@/trpc/react";
-import { AppShell } from "@/components/layout/app-shell";
+import { Inter } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+
+import { ThemeProvider } from "@/components/ui/theme-provider";
 
 export const metadata: Metadata = {
   title: "FlowMail",
@@ -12,13 +17,18 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", inter.variable)} suppressHydrationWarning>
       <body>
-        <TRPCReactProvider>
-          <AppShell>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TRPCReactProvider>
             {children}
-          </AppShell>
-        </TRPCReactProvider>
+          </TRPCReactProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
