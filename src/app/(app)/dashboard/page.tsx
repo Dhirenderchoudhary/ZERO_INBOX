@@ -1,0 +1,190 @@
+"use client";
+
+import {
+  ArrowUpRight,
+  Bot,
+  CalendarCheck,
+  Clock3,
+  Inbox,
+  MailPlus,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import { InboxIntelligence } from "@/components/dashboard/inbox-intelligence";
+import { KpiCard } from "@/components/dashboard/kpi-card";
+import { RecentActions } from "@/components/dashboard/recent-actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+const kpis = [
+  {
+    label: "Priority threads",
+    value: "12",
+    trend: "-38% noise",
+    icon: Inbox,
+    tone: "text-blue-500",
+  },
+  {
+    label: "Reply obligations",
+    value: "4",
+    trend: "2 due today",
+    icon: Clock3,
+    tone: "text-amber-500",
+  },
+  {
+    label: "Meetings automated",
+    value: "9",
+    trend: "+24% this week",
+    icon: CalendarCheck,
+    tone: "text-emerald-500",
+  },
+  {
+    label: "AI actions",
+    value: "128",
+    trend: "94% accepted",
+    icon: Bot,
+    tone: "text-violet-500",
+  },
+] as const;
+
+const quickActions = [
+  "Triage inbox",
+  "Draft follow-ups",
+  "Find open slots",
+  "Archive newsletters",
+] as const;
+
+export default function DashboardPage() {
+  return (
+    <div className="h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+        <section className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-sm">
+          <div className="relative p-6 sm:p-8">
+            <div className="bg-primary/10 absolute top-0 right-0 h-56 w-56 rounded-full blur-3xl" />
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/5 mb-4 rounded-full"
+                >
+                  <Sparkles size={13} /> Morning command brief
+                </Badge>
+                <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                  Your communication system is under control.
+                </h2>
+                <p className="text-muted-foreground mt-3 text-base leading-7">
+                  AI triage is filtering low-signal work, surfacing critical
+                  replies, and keeping your calendar aligned with priority
+                  conversations.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  onClick={() =>
+                    window.dispatchEvent(new CustomEvent("compose"))
+                  }
+                  className="rounded-xl"
+                >
+                  <MailPlus size={16} /> New message
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => {
+                    window.location.href = "/agent";
+                  }}
+                >
+                  <Bot size={16} /> Ask agent
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {kpis.map((item) => (
+            <KpiCard
+              key={item.label}
+              label={item.label}
+              value={item.value}
+              trend={item.trend}
+              icon={item.icon}
+              tone={item.tone}
+            />
+          ))}
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+          <InboxIntelligence />
+          <RecentActions />
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <Card id="security">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck size={18} /> Trust posture
+              </CardTitle>
+              <CardDescription>
+                OAuth, least privilege scopes, and auditability.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-muted-foreground space-y-3 text-sm">
+              <p>
+                Google OAuth connected with scoped access for Gmail and Calendar
+                actions.
+              </p>
+              <p>
+                Every automated action is logged, reviewable, and reversible.
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick actions</CardTitle>
+              <CardDescription>Common workflows in one click.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              {quickActions.map((action) => (
+                <Button
+                  key={action}
+                  variant="outline"
+                  className="justify-between rounded-xl"
+                >
+                  {action} <ArrowUpRight size={14} />
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+          <Card id="settings">
+            <CardHeader>
+              <CardTitle>Empty-state quality</CardTitle>
+              <CardDescription>
+                When data is unavailable, the product guides the next step.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border-border bg-muted/40 rounded-xl border border-dashed p-6 text-center">
+                <Sparkles
+                  className="text-muted-foreground mx-auto mb-3"
+                  size={24}
+                />
+                <p className="font-medium">No pending escalations</p>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  You are clear to focus on deep work.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      </div>
+    </div>
+  );
+}
