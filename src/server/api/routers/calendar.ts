@@ -1,14 +1,14 @@
 import { z } from 'zod';
-import { createTRPCRouter, publicProcedure } from '../trpc';
+import { createTRPCRouter, protectedProcedure } from '../trpc';
 import { getTenant } from '../../lib/tenant';
 import { addDays, startOfWeek, endOfWeek, format } from 'date-fns';
 
 export const calendarRouter = createTRPCRouter({
 
-  getWeekEvents: publicProcedure
+  getWeekEvents: protectedProcedure
     .input(z.object({ weekStart: z.string() }))
-    .query(async ({ input }) => {
-      const tenant = getTenant();
+    .query(async ({ input, ctx }) => {
+      const tenant = getTenant(ctx.session.user.id);
       const start = new Date(input.weekStart);
       const end = addDays(start, 7);
       const timeMin = start.toISOString();
@@ -24,9 +24,9 @@ export const calendarRouter = createTRPCRouter({
       return res.items ?? [];
     }),
 
-  refresh: publicProcedure
-    .mutation(async () => {
-      const tenant = getTenant();
+  refresh: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const tenant = getTenant(ctx.session.user.id);
       const now = new Date();
       const timeMin = now.toISOString();
       const timeMax = addDays(now, 14).toISOString();
@@ -38,7 +38,7 @@ export const calendarRouter = createTRPCRouter({
       });
     }),
 
-  createEvent: publicProcedure
+  createEvent: protectedProcedure
     .input(z.object({
       summary: z.string(),
       description: z.string().optional(),
@@ -48,8 +48,8 @@ export const calendarRouter = createTRPCRouter({
       location: z.string().optional(),
       sendInvites: z.boolean().default(true),
     }))
-    .mutation(async ({ input }) => {
-      const tenant = getTenant();
+    .mutation(async ({ input, ctx }) => {
+      const tenant = getTenant(ctx.session.user.id);
       return tenant.googlecalendar.api.events.create({
         calendarId: 'primary',
         sendUpdates: input.sendInvites ? 'all' : 'none',
@@ -64,18 +64,18 @@ export const calendarRouter = createTRPCRouter({
       });
     }),
 
-  searchEvents: publicProcedure
+  searchEvents: protectedProcedure
     .input(z.object({ query: z.string() }))
-    .query(async ({ input }) => {
-      const tenant = getTenant();
+    .query(async ({ input, ctx }) => {
+      const tenant = getTenant(ctx.session.user.id);
       return tenant.googlecalendar.db.events.search({
         data: { summary: { contains: input.query } },
         limit: 20,
       });
     }),
 
-  getTodayEvents: publicProcedure.query(async () => {
-    const tenant = getTenant();
+  getTodayEvents: protectedProcedure.query(async ({ ctx }) => {
+    const tenant = getTenant(ctx.session.user.id);
     const now = new Date();
     const start = new Date(now.setHours(0,0,0,0)).toISOString();
     const end = new Date(now.setHours(23,59,59,999)).toISOString();

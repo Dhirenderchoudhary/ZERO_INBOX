@@ -1,7 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 import { z } from 'zod';
-import { createTRPCRouter, publicProcedure } from '../trpc';
+import { createTRPCRouter, protectedProcedure } from '../trpc';
 import { Mistral } from '@mistralai/mistralai';
 import { db } from '../../db';
 import { emailTriage, agentMessages } from '../../db/schema';
@@ -14,14 +14,14 @@ const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! });
 
 export const aiRouter = createTRPCRouter({
 
-  triageOne: publicProcedure
+  triageOne: protectedProcedure
     .input(z.object({
       entityId: z.string(),
       subject: z.string(),
       snippet: z.string(),
       from: z.string(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const msg = await mistral.chat.complete({
         model: 'mistral-small-latest',
         maxTokens: 15,
@@ -59,9 +59,9 @@ Respond with ONLY the category word. Nothing else.`
       return { priority };
     }),
 
-  triageInbox: publicProcedure
-    .mutation(async () => {
-      const tenant = getTenant();
+  triageInbox: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const tenant = getTenant(ctx.session.user.id);
       const raw = await tenant.gmail.db.messages.list({ limit: 30 });
       const messages = dedupeAndSort(raw).slice(0, 20);
 
@@ -105,9 +105,9 @@ Respond with ONLY the category word. Nothing else.`
       return { triaged: count };
     }),
 
-  summarize: publicProcedure
+  summarize: protectedProcedure
     .input(z.object({ subject: z.string(), body: z.string(), from: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const msg = await mistral.chat.complete({
         model: 'mistral-small-latest',
         maxTokens: 120,
@@ -126,9 +126,9 @@ Respond with ONLY the category word. Nothing else.`
       return { summary: typeof content === 'string' ? content : '' };
     }),
 
-  draftReply: publicProcedure
+  draftReply: protectedProcedure
     .input(z.object({ subject: z.string(), body: z.string(), from: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const msg = await mistral.chat.complete({
         model: 'mistral-small-latest',
         maxTokens: 300,
@@ -147,7 +147,7 @@ Respond with ONLY the category word. Nothing else.`
       return { draft: typeof content === 'string' ? content : '' };
     }),
 
-  agentChat: publicProcedure
+  agentChat: protectedProcedure
     .input(z.object({
       message: z.string(),
       history: z.array(z.object({
@@ -155,8 +155,8 @@ Respond with ONLY the category word. Nothing else.`
         content: z.string(),
       })).default([]),
     }))
-    .mutation(async ({ input }) => {
-      const tenant = getTenant();
+    .mutation(async ({ input, ctx }) => {
+      const tenant = getTenant(ctx.session.user.id);
       const now = new Date();
       const IST = 'Asia/Kolkata';
 
