@@ -53,7 +53,7 @@ yarn-error.log*
 .continue/
 .cursor/
 .gemini/
-.github/
+.github/prompts/
 .kiro/
 .opencode/
 .qoder/
