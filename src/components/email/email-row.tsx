@@ -4,10 +4,10 @@ import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const PRIORITY_COLORS: Record<string, string> = {
-  urgent:      'var(--color-urgent)',
-  needs_reply: 'var(--color-reply)',
-  fyi:         'var(--color-fyi)',
-  newsletter:  'var(--color-newsletter)',
+  urgent:      'var(--urgent)',
+  needs_reply: 'var(--reply)',
+  fyi:         'var(--fyi)',
+  newsletter:  'var(--newsletter)',
   other:       'transparent',
 };
 
@@ -41,15 +41,15 @@ export function EmailRow({ email, isSelected, isFocused, onClick }: EmailRowProp
       onClick={onClick}
       className="relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b"
       style={{
-        borderColor: 'var(--color-border-0)',
+        borderColor: 'var(--border-0)',
         background: isSelected
-          ? 'var(--color-accent-glow)'
+          ? 'var(--accent-glow)'
           : isFocused
-          ? 'var(--color-bg-3)'
+          ? 'var(--bg-3)'
           : isUnread
-          ? 'var(--color-bg-2)'
+          ? 'var(--bg-2)'
           : 'transparent',
-        borderLeft: `2px solid ${isSelected ? 'var(--color-accent)' : (PRIORITY_COLORS[priority] || 'transparent')}`,
+        borderLeft: `2px solid ${isSelected ? 'var(--accent)' : (PRIORITY_COLORS[priority] || 'transparent')}`,
         paddingLeft: isSelected || (PRIORITY_COLORS[priority] || 'transparent') !== 'transparent' ? '14px' : '16px',
       }}
     >
@@ -57,7 +57,7 @@ export function EmailRow({ email, isSelected, isFocused, onClick }: EmailRowProp
         <div
           className="w-1.5 h-1.5 rounded-full transition-opacity"
           style={{
-            background: 'var(--color-accent)',
+            background: 'var(--accent)',
             opacity: isUnread ? 1 : 0,
           }}
         />
@@ -68,13 +68,13 @@ export function EmailRow({ email, isSelected, isFocused, onClick }: EmailRowProp
           <span
             className="text-small truncate"
             style={{
-              color: 'var(--color-text-0)',
+              color: 'var(--text-0)',
               fontWeight: isUnread ? 600 : 400,
             }}
           >
             {parseSenderName(email?.data?.from ?? email?.fromAddress ?? email?.from)}
           </span>
-          <span className="text-mono flex-shrink-0 ml-2" style={{ color: 'var(--color-text-3)' }}>
+          <span className="text-mono flex-shrink-0 ml-2" style={{ color: 'var(--text-3)' }}>
             {formatEmailTime(email?.data?.date ?? email?.updated_at ?? new Date().toISOString())}
           </span>
         </div>
@@ -82,20 +82,20 @@ export function EmailRow({ email, isSelected, isFocused, onClick }: EmailRowProp
         <p
           className="text-small truncate mb-0.5"
           style={{
-            color: isUnread ? 'var(--color-text-0)' : 'var(--color-text-1)',
+            color: isUnread ? 'var(--text-0)' : 'var(--text-1)',
             fontWeight: isUnread ? 500 : 400,
           }}
         >
           {email?.data?.subject ?? email?.subject ?? '(no subject)'}
         </p>
 
-        <p className="text-micro truncate" style={{ color: 'var(--color-text-2)' }}>
+        <p className="text-micro truncate" style={{ color: 'var(--text-2)' }}>
           {email?.data?.snippet ?? email?.snippet ?? ''}
         </p>
       </div>
 
       {email?.isStarred && (
-        <Star size={11} fill="var(--color-accent)" color="var(--color-accent)" className="mt-1 flex-shrink-0" />
+        <Star size={11} fill="var(--accent)" color="var(--accent)" className="mt-1 flex-shrink-0" />
       )}
     </div>
   );
