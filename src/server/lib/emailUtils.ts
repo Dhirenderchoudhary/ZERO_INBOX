@@ -1,70 +1,70 @@
-export function encodeRawEmail(opts: {
+export interface EmailParams {
   to: string;
   subject: string;
   body: string;
   from?: string;
-}): string {
+  cc?: string;
+  replyTo?: string;
+}
+
+export function encodeRawEmail({ to, subject, body, from, cc, replyTo }: EmailParams): string {
+  const encodeSubject = (s: string) => {
+    const b64 = btoa(unescape(encodeURIComponent(s)));
+    return `=?UTF-8?B?${b64}?=`;
+  };
+
   const lines = [
-    ...(opts.from ? [`From: ${opts.from}`] : []),
-    `To: ${opts.to}`,
-    `Subject: =?UTF-8?B?${Buffer.from(opts.subject).toString("base64")}?=`,
-    "Content-Type: text/plain; charset=utf-8",
-    "MIME-Version: 1.0",
-    "",
-    opts.body,
-  ];
-  const message = lines.join("\r\n");
-  const base64 = Buffer.from(message, "utf-8").toString("base64");
-  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    from ? `From: ${from}` : null,
+    `To: ${to}`,
+    cc ? `Cc: ${cc}` : null,
+    replyTo ? `Reply-To: ${replyTo}` : null,
+    `Subject: ${encodeSubject(subject)}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    body,
+  ].filter(Boolean).join('\r\n');
+
+  return btoa(unescape(encodeURIComponent(lines)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
-export function decodeBase64Url(data: string): string {
-  const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
-  return Buffer.from(base64, "base64").toString("utf-8");
-}
-
-type GmailPart = {
-  mimeType?: string;
-  body?: { data?: string };
-  parts?: GmailPart[];
-};
-
-export function decodeEmailBody(payload?: GmailPart): string {
-  if (!payload) return "";
-
-  if (payload.mimeType === "text/plain" && payload.body?.data) {
-    return decodeBase64Url(payload.body.data);
-  }
-
-  for (const part of payload.parts ?? []) {
-    const text = decodeEmailBody(part);
-    if (text) return text;
-  }
-
+export function decodeEmailBody(payload: any): string {
+  if (!payload) return '';
   if (payload.body?.data) {
-    return decodeBase64Url(payload.body.data);
+    try {
+      const b64 = payload.body.data.replace(/-/g, '+').replace(/_/g, '/');
+      return decodeURIComponent(escape(atob(b64)));
+    } catch {}
   }
-
-  return "";
+  if (payload.parts) {
+    for (const part of payload.parts) {
+      if (part.mimeType === 'text/plain' && part.body?.data) {
+        try {
+          const b64 = part.body.data.replace(/-/g, '+').replace(/_/g, '/');
+          return decodeURIComponent(escape(atob(b64)));
+        } catch {}
+      }
+    }
+    for (const part of payload.parts) {
+      const nested = decodeEmailBody(part);
+      if (nested) return nested;
+    }
+  }
+  return '';
 }
 
-export function getHeader(
-  headers: { name?: string; value?: string }[] | undefined,
-  name: string,
-): string {
-  return (
-    headers?.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ??
-    ""
-  );
+export function parseSenderName(from: string | undefined): string {
+  if (!from) return 'Unknown';
+  const match = from.match(/^"?([^"<]+)"?\s*</);
+  return match ? match[1]!.trim() : from.split('@')[0] ?? from;
 }
 
-export function parseEmailAddress(raw: string): { name: string; email: string } {
-  const match = raw.match(/^(?:(.*?)<)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:>)?$/);
-  if (match) {
-    return {
-      name: (match[1] || "").trim().replace(/^"|"$/g, ""),
-      email: match[2] || "",
-    };
-  }
-  return { name: "", email: raw.trim() };
+export function parseSenderEmail(from: string | undefined): string {
+  if (!from) return '';
+  const match = from.match(/<(.+)>/);
+  return match ? match[1]! : from;
 }
