@@ -1,4 +1,5 @@
 import { type LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -14,39 +15,22 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="anim-fade-in flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
-      <div
-        className="flex h-10 w-10 items-center justify-center rounded-xl"
-        style={{
-          background: "var(--bg-3)",
-          border: "1px solid var(--border-1)",
-        }}
-      >
-        <Icon size={18} style={{ color: "var(--text-3)" }} />
+    <div className="flex h-full flex-col items-center justify-center px-8 py-12 text-center">
+      <div className="border-border/70 bg-muted text-muted-foreground mb-4 flex size-12 items-center justify-center rounded-2xl border shadow-sm">
+        <Icon size={22} />
       </div>
-      <div>
-        <p
-          className="t-body mb-0.5 font-medium"
-          style={{ color: "var(--text-1)" }}
-        >
-          {title}
-        </p>
-        <p className="t-small" style={{ color: "var(--text-3)" }}>
-          {description}
-        </p>
-      </div>
+      <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+      <p className="text-muted-foreground mt-1 max-w-sm text-sm leading-6">
+        {description}
+      </p>
       {action && (
-        <button
+        <Button
           onClick={action.onClick}
-          className="t-small mt-1 rounded-lg px-3 py-1.5 font-medium transition-opacity hover:opacity-80"
-          style={{
-            background: "var(--bg-4)",
-            color: "var(--text-1)",
-            border: "1px solid var(--border-2)",
-          }}
+          variant="outline"
+          className="mt-5 rounded-xl"
         >
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -1,15 +1,18 @@
-export function KBD({ children }: { children: React.ReactNode }) {
+import { cn } from "@/lib/utils";
+
+export function KBD({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <kbd
-      className="t-mono inline-flex items-center rounded px-1.5 py-0.5"
-      style={{
-        background: "var(--bg-4)",
-        border: "1px solid var(--border-2)",
-        color: "var(--text-3)",
-        fontSize: "10px",
-        fontFamily: "var(--font-mono)",
-        boxShadow: "0 1px 0 var(--border-2)",
-      }}
+      className={cn(
+        "bg-muted border-border text-muted-foreground inline-flex items-center rounded border px-1.5 py-0.5 font-mono text-[10px] shadow-[0_1px_0_var(--color-border)]",
+        className,
+      )}
     >
       {children}
     </kbd>

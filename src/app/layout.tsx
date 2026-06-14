@@ -1,16 +1,20 @@
 import "@/styles/globals.css";
 import { type Metadata } from "next";
 import { TRPCReactProvider } from "@/trpc/react";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-
 import { ThemeProvider } from "@/components/ui/theme-provider";
 
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
+
 export const metadata: Metadata = {
-  title: "FlowMail",
-  description: "Premium Superhuman-Style Email & Calendar App",
+  title: "ZERO INBOX",
+  description:
+    "AI-native email, calendar, and workflow automation for modern teams.",
 };
 
 export default function RootLayout({
@@ -19,13 +23,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("font-sans", inter.variable)}
+      className={cn(inter.variable, jetbrainsMono.variable)}
       suppressHydrationWarning
     >
-      <body>
+      <body className="font-sans">
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
