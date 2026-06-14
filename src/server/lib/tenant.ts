@@ -1,5 +1,7 @@
 import { corsair } from "../corsair";
 
 export function getTenant(tenantId: string) {
-  return corsair.withTenant(tenantId);
+  const effectiveTenant =
+    process.env.NODE_ENV === "development" ? "dev" : tenantId;
+  return corsair.withTenant(effectiveTenant);
 }

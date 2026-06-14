@@ -3,30 +3,22 @@ import { cn } from "@/lib/utils";
 const BADGE_CONFIG = {
   urgent: {
     label: "Urgent",
-    color: "var(--urgent)",
-    bg: "var(--urgent-bg)",
-    border: "var(--urgent-border)",
+    className: "text-destructive bg-destructive/10 border-destructive/20",
     dot: true,
   },
   needs_reply: {
     label: "Reply",
-    color: "var(--reply)",
-    bg: "var(--reply-bg)",
-    border: "var(--reply-border)",
+    className: "text-blue-500 bg-blue-500/10 border-blue-500/20",
     dot: false,
   },
   fyi: {
     label: "FYI",
-    color: "var(--fyi)",
-    bg: "var(--fyi-bg)",
-    border: "var(--fyi-border)",
+    className: "text-purple-500 bg-purple-500/10 border-purple-500/20",
     dot: false,
   },
   newsletter: {
     label: "List",
-    color: "var(--newsletter)",
-    bg: "var(--newsletter-bg)",
-    border: "var(--newsletter-border)",
+    className: "text-muted-foreground bg-muted border-border",
     dot: false,
   },
 } as const;
@@ -37,21 +29,13 @@ export function PriorityBadge({ priority }: { priority: string }) {
 
   return (
     <span
-      className="badge"
-      style={{
-        color: cfg.color,
-        background: cfg.bg,
-        borderColor: cfg.border,
-      }}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-[4px] border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap uppercase",
+        cfg.className,
+      )}
     >
       {cfg.dot && (
-        <span
-          className="h-[5px] w-[5px] flex-shrink-0 rounded-full"
-          style={{
-            background: cfg.color,
-            animation: "pulse-dot 2s ease-in-out infinite",
-          }}
-        />
+        <span className="h-1.5 w-1.5 flex-shrink-0 animate-pulse rounded-full bg-current" />
       )}
       {cfg.label}
     </span>

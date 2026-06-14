@@ -46,14 +46,8 @@ export function SnoozeMenu({ onSnooze, onClose }: SnoozeMenuProps) {
   ];
 
   return (
-    <div
-      className="absolute top-10 right-0 z-50 w-48 overflow-hidden rounded-md border shadow-lg"
-      style={{ background: "var(--bg-1)", borderColor: "var(--border-1)" }}
-    >
-      <div
-        className="border-b px-3 py-2 text-[11px] font-medium"
-        style={{ borderColor: "var(--border-1)", color: "var(--text-2)" }}
-      >
+    <div className="border-border bg-popover absolute top-10 right-0 z-50 w-48 overflow-hidden rounded-md border shadow-md">
+      <div className="border-border text-muted-foreground border-b px-3 py-2 text-[11px] font-medium">
         Snooze until...
       </div>
       <div className="py-1">
@@ -64,10 +58,9 @@ export function SnoozeMenu({ onSnooze, onClose }: SnoozeMenuProps) {
               onSnooze(opt.time);
               onClose();
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] transition-colors hover:bg-[var(--bg-3)]"
-            style={{ color: "var(--text-0)" }}
+            className="hover:bg-muted text-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors"
           >
-            <Clock size={12} style={{ color: "var(--text-2)" }} />
+            <Clock size={12} className="text-muted-foreground" />
             {opt.label}
           </button>
         ))}

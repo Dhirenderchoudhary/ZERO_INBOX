@@ -1,16 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Reply,
   Archive,
-  Star,
-  Sparkles,
-  Loader2,
   ArrowLeft,
   Clock,
-  MoreHorizontal,
-  ExternalLink,
+  Loader2,
+  Reply,
+  Sparkles,
+  Star,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -18,25 +17,27 @@ import { api } from "@/trpc/react";
 import { useEmailStore } from "@/hooks/useEmailStore";
 import {
   decodeEmailBody,
-  parseSenderName,
   parseSenderEmail,
+  parseSenderName,
 } from "@/server/lib/emailUtils";
 import { LoadingDots } from "@/components/ui/LoadingDots";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { KBD } from "@/components/ui/KBD";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
 import { SnoozeMenu } from "./SnoozeMenu";
 import { ComposeModal } from "./compose-modal";
 
 function linkify(text: string): string {
   return text.replace(
     /(https?:\/\/[^\s<>)"]+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--accent-text);text-decoration:underline;text-underline-offset:2px">$1</a>',
+    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-primary underline underline-offset-4">$1</a>',
   );
 }
 
 export function EmailDetail() {
-  const { selectedId, setSelectedId, setReplyTo, setComposeOpen } =
-    useEmailStore();
+  const { selectedId, setSelectedId } = useEmailStore();
   const [showSnooze, setShowSnooze] = useState(false);
   const [showReply, setShowReply] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
@@ -74,18 +75,17 @@ export function EmailDetail() {
     },
   });
 
-  // Auto-mark as read and get quick replies
   useEffect(() => {
     if (!selectedId || !email) return;
     markRead.mutate({ entityId: selectedId });
     setAiSummary("");
     setShowReply(false);
     setDraftBody("");
-  }, [selectedId]);
+  }, [selectedId, email, markRead]);
 
-  // Keyboard shortcuts
   useEffect(() => {
-    const onArchive = () => archive.mutate({ entityId: selectedId! });
+    const onArchive = () =>
+      selectedId && archive.mutate({ entityId: selectedId });
     const onReply = () => {
       const e = email as any;
       if (!e) return;
@@ -97,7 +97,8 @@ export function EmailDetail() {
     };
     const onStar = () => {
       const e = email as any;
-      toggleStar.mutate({ entityId: selectedId!, starred: !e?.isStarred });
+      if (!selectedId) return;
+      toggleStar.mutate({ entityId: selectedId, starred: !e?.isStarred });
     };
     window.addEventListener("archive", onArchive);
     window.addEventListener("reply", onReply);
@@ -107,32 +108,25 @@ export function EmailDetail() {
       window.removeEventListener("reply", onReply);
       window.removeEventListener("star", onStar);
     };
-  }, [selectedId, email]);
+  }, [selectedId, email, archive, draftReply, toggleStar]);
 
   if (!selectedId) {
     return (
-      <div
-        className="relative flex flex-1 flex-col items-center justify-center"
-        style={{ background: "var(--bg-0)" }}
-      >
-        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.03)_0,transparent_50%)]" />
+      <section className="border-border/70 bg-card hidden min-h-0 rounded-2xl border shadow-sm lg:flex">
         <EmptyState
           icon={ArrowLeft}
-          title="No message selected"
-          description="Use J/K to navigate · Enter to open"
+          title="Select a message"
+          description="Choose a thread to read, summarize, reply, snooze, or archive."
         />
-      </div>
+      </section>
     );
   }
 
   if (isLoading) {
     return (
-      <div
-        className="relative flex flex-1 items-center justify-center"
-        style={{ background: "var(--bg-0)" }}
-      >
+      <section className="border-border/70 bg-card flex min-h-0 items-center justify-center rounded-2xl border shadow-sm">
         <LoadingDots />
-      </div>
+      </section>
     );
   }
 
@@ -143,108 +137,60 @@ export function EmailDetail() {
   const body =
     decodeEmailBody(e?.payload) || e?.data?.body || e?.data?.snippet || "";
   const senderEmail = parseSenderEmail(from);
+  const senderName = parseSenderName(from);
 
   return (
-    <motion.div
-      className="relative flex flex-1 flex-col overflow-hidden"
-      style={{ background: "var(--bg-0)" }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.15 }}
+    <motion.section
+      className="bg-background lg:border-border/70 lg:bg-card fixed inset-0 z-40 flex min-h-0 flex-col overflow-hidden lg:static lg:rounded-2xl lg:border lg:shadow-sm"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.16 }}
     >
-      {/* Floating Toolbar Header */}
-      <div
-        className="absolute top-0 right-0 left-0 z-30 flex h-[60px] items-center gap-3 px-6"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(3,3,4,0.95) 0%, rgba(3,3,4,0.85) 60%, rgba(3,3,4,0) 100%)",
-          backdropFilter: "var(--blur-md)",
-          WebkitBackdropFilter: "var(--blur-md)",
-          borderBottom: "1px solid rgba(255,255,255,0.03)",
-        }}
-      >
-        <button
+      <div className="border-border/70 bg-card/95 flex min-h-16 shrink-0 items-center gap-2 border-b px-4 backdrop-blur lg:rounded-t-2xl lg:px-5">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
           onClick={() => setSelectedId(null)}
-          className="rounded-[8px] p-2 transition-all duration-200 hover:bg-white/5 active:scale-[0.95] lg:hidden"
-          style={{ color: "var(--text-1)" }}
         >
-          <ArrowLeft size={16} />
-        </button>
-
-        <div className="relative ml-auto flex items-center gap-2">
-          <button
+          <ArrowLeft size={17} />
+          <span className="sr-only">Back to inbox</span>
+        </Button>
+        <Badge variant="outline" className="rounded-full">
+          Thread
+        </Badge>
+        <div className="ml-auto flex items-center gap-1 overflow-x-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-xl"
             onClick={() => summarize.mutate({ subject, from, body })}
             disabled={summarize.isPending}
-            className="t-small flex items-center gap-2 rounded-[8px] px-3 py-1.5 font-medium transition-all duration-200"
-            style={{
-              background: "var(--bg-1)",
-              color: "var(--text-1)",
-              border: "1px solid var(--border-1)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-            onMouseEnter={(ev) => {
-              ev.currentTarget.style.color = "var(--text-0)";
-              ev.currentTarget.style.borderColor = "var(--accent-border)";
-            }}
-            onMouseLeave={(ev) => {
-              ev.currentTarget.style.color = "var(--text-1)";
-              ev.currentTarget.style.borderColor = "var(--border-1)";
-            }}
-            title="AI Summary (S)"
           >
             {summarize.isPending ? (
-              <Loader2 size={13} className="animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Sparkles size={13} style={{ color: "var(--accent)" }} />
+              <Sparkles className="size-4" />
             )}
             Summary
-          </button>
-
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-xl"
             onClick={() => setShowReply(true)}
-            className="t-small flex items-center gap-2 rounded-[8px] px-3 py-1.5 font-medium transition-all duration-200"
-            style={{
-              background: "var(--bg-1)",
-              color: "var(--text-1)",
-              border: "1px solid var(--border-1)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-            onMouseEnter={(ev) => {
-              ev.currentTarget.style.color = "var(--text-0)";
-              ev.currentTarget.style.borderColor = "var(--border-2)";
-            }}
-            onMouseLeave={(ev) => {
-              ev.currentTarget.style.color = "var(--text-1)";
-              ev.currentTarget.style.borderColor = "var(--border-1)";
-            }}
-            title="Reply (R)"
           >
-            <Reply size={13} /> Reply
-          </button>
-
+            <Reply className="size-4" /> Reply
+          </Button>
           <div className="relative">
-            <button
-              onClick={() => setShowSnooze(!showSnooze)}
-              className="t-small flex items-center gap-2 rounded-[8px] px-3 py-1.5 font-medium transition-all duration-200"
-              style={{
-                background: "var(--bg-1)",
-                color: "var(--text-1)",
-                border: "1px solid var(--border-1)",
-                boxShadow: "var(--shadow-sm)",
-              }}
-              onMouseEnter={(ev) => {
-                ev.currentTarget.style.color = "var(--text-0)";
-                ev.currentTarget.style.borderColor = "var(--border-2)";
-              }}
-              onMouseLeave={(ev) => {
-                ev.currentTarget.style.color = "var(--text-1)";
-                ev.currentTarget.style.borderColor = "var(--border-1)";
-              }}
-              title="Snooze"
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => setShowSnooze((value) => !value)}
             >
-              <Clock size={13} /> Snooze
-            </button>
-
+              <Clock className="size-4" /> Snooze
+            </Button>
             {showSnooze && (
               <SnoozeMenu
                 onSnooze={(until) =>
@@ -254,152 +200,90 @@ export function EmailDetail() {
               />
             )}
           </div>
-
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-xl"
             onClick={() => archive.mutate({ entityId: selectedId })}
-            className="t-small flex items-center gap-2 rounded-[8px] px-3 py-1.5 font-medium transition-all duration-200"
-            style={{
-              background: "var(--bg-1)",
-              color: "var(--text-1)",
-              border: "1px solid var(--border-1)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-            onMouseEnter={(ev) => {
-              ev.currentTarget.style.color = "var(--text-0)";
-              ev.currentTarget.style.borderColor = "var(--border-2)";
-            }}
-            onMouseLeave={(ev) => {
-              ev.currentTarget.style.color = "var(--text-1)";
-              ev.currentTarget.style.borderColor = "var(--border-1)";
-            }}
-            title="Archive (E)"
           >
-            <Archive size={13} /> Archive
-          </button>
-
-          <button
+            <Archive className="size-4" /> Archive
+          </Button>
+          <Button
+            variant={e?.isStarred ? "secondary" : "ghost"}
+            size="icon-sm"
+            className="rounded-xl"
             onClick={() =>
               toggleStar.mutate({
                 entityId: selectedId,
                 starred: !e?.isStarred,
               })
             }
-            className="t-small flex items-center gap-2 rounded-[8px] px-3 py-1.5 font-medium transition-all duration-200"
-            style={{
-              background: "var(--bg-1)",
-              color: e?.isStarred ? "var(--accent)" : "var(--text-1)",
-              border: "1px solid",
-              borderColor: e?.isStarred
-                ? "var(--accent-border)"
-                : "var(--border-1)",
-              boxShadow: e?.isStarred
-                ? "var(--shadow-glow)"
-                : "var(--shadow-sm)",
-            }}
-            onMouseEnter={(ev) => {
-              if (!e?.isStarred) {
-                ev.currentTarget.style.color = "var(--text-0)";
-                ev.currentTarget.style.borderColor = "var(--border-2)";
-              }
-            }}
-            onMouseLeave={(ev) => {
-              if (!e?.isStarred) {
-                ev.currentTarget.style.color = "var(--text-1)";
-                ev.currentTarget.style.borderColor = "var(--border-1)";
-              }
-            }}
-            title="Star (S)"
           >
-            <Star size={13} fill={e?.isStarred ? "var(--accent)" : "none"} />
-          </button>
+            <Star
+              className={
+                e?.isStarred ? "size-4 fill-amber-400 text-amber-400" : "size-4"
+              }
+            />
+            <span className="sr-only">Star</span>
+          </Button>
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-10 pt-[80px] pb-16">
-        <div className="mx-auto max-w-[720px]">
-          <h1
-            className="t-display mb-10 tracking-tight"
-            style={{ color: "var(--text-0)" }}
-          >
-            {subject}
-          </h1>
-
-          <div
-            className="mb-10 flex items-start justify-between pb-6"
-            style={{ borderBottom: "1px solid var(--border-0)" }}
-          >
-            <div className="flex items-center gap-3.5">
-              <div
-                className="t-title flex h-11 w-11 items-center justify-center rounded-full"
-                style={{
-                  background: "var(--bg-2)",
-                  color: "var(--text-0)",
-                  border: "1px solid var(--border-1)",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                {parseSenderName(from).charAt(0).toUpperCase()}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:px-10">
+        <article className="mx-auto max-w-3xl">
+          <div className="mb-8">
+            <h1 className="text-3xl font-semibold tracking-tight text-balance">
+              {subject}
+            </h1>
+            <div className="border-border/70 mt-6 flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarFallback>
+                    {senderName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{senderName}</p>
+                  <p className="text-muted-foreground truncate text-xs">
+                    {senderEmail} · to me
+                  </p>
+                </div>
               </div>
-              <div>
-                <p
-                  className="t-body mb-0.5 font-medium"
-                  style={{ color: "var(--text-0)" }}
-                >
-                  {parseSenderName(from)}{" "}
-                  <span className="t-small ml-1 font-normal opacity-60">
-                    &lt;{senderEmail}&gt;
-                  </span>
-                </p>
-                <p className="t-small" style={{ color: "var(--text-2)" }}>
-                  to me
-                </p>
-              </div>
+              <p className="text-muted-foreground text-xs">
+                {format(
+                  date ? new Date(date) : new Date(),
+                  "MMM d, yyyy · h:mm a",
+                )}
+              </p>
             </div>
-            <p className="t-small" style={{ color: "var(--text-2)" }}>
-              {format(
-                date ? new Date(date) : new Date(),
-                "MMM d, yyyy, h:mm a",
-              )}
-            </p>
           </div>
 
           <AnimatePresence>
             {aiSummary && (
               <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="relative mb-10 overflow-hidden rounded-[16px] p-6"
-                style={{
-                  background: "var(--bg-1)",
-                  border: "1px solid var(--accent-border)",
-                  boxShadow: "var(--shadow-md)",
-                }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
               >
-                <div className="pointer-events-none absolute top-0 right-0 h-32 w-32 rounded-full bg-[var(--accent)] opacity-[0.03] blur-[30px]" />
-                <div className="mb-3 flex items-center gap-2">
-                  <Sparkles size={15} style={{ color: "var(--accent)" }} />
-                  <span className="t-label" style={{ color: "var(--accent)" }}>
-                    AI SUMMARY
-                  </span>
-                </div>
-                <p
-                  className="t-body text-[15px] leading-relaxed"
-                  style={{ color: "var(--text-0)" }}
-                >
-                  {aiSummary}
-                </p>
+                <Card className="border-primary/20 bg-primary/5 mb-8">
+                  <CardContent className="p-5">
+                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                      <Sparkles size={16} /> AI summary
+                    </div>
+                    <p className="text-muted-foreground text-sm leading-7">
+                      {aiSummary}
+                    </p>
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
           </AnimatePresence>
 
           <div
-            className="t-body leading-[1.8] whitespace-pre-wrap"
-            style={{ color: "var(--text-0)", fontSize: "15px" }}
+            className="prose prose-sm text-foreground dark:prose-invert max-w-none leading-8 whitespace-pre-wrap"
             dangerouslySetInnerHTML={{ __html: linkify(body) }}
           />
-        </div>
+        </article>
       </div>
 
       {showReply && (
@@ -412,6 +296,6 @@ export function EmailDetail() {
           onClose={() => setShowReply(false)}
         />
       )}
-    </motion.div>
+    </motion.section>
   );
 }

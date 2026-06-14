@@ -5,16 +5,7 @@ import { encodeRawEmail } from "../../lib/emailUtils";
 import { dedupeAndSort } from "../../lib/dedup";
 import { db } from "../../db";
 import { emailTriage, scheduledEmails } from "../../db/schema";
-import { eq, inArray, isNull, and, lte } from "drizzle-orm";
-
-type Priority =
-  | "all"
-  | "urgent"
-  | "needs_reply"
-  | "fyi"
-  | "newsletter"
-  | "other"
-  | "unread";
+import { inArray } from "drizzle-orm";
 
 function enrichWithTriage(messages: any[], triageRows: any[]) {
   const map = new Map(triageRows.map((r) => [r.entityId, r]));
@@ -48,7 +39,8 @@ export const gmailRouter = createTRPCRouter({
     )
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
-      const raw = await tenant.gmail.db.messages.list({ limit: input.limit });
+      // Fetch more than requested since we might filter many out
+      const raw = await tenant.gmail.db.messages.list({ limit: 200 });
       const messages = dedupeAndSort(raw);
       const entityIds = messages.map((m) => m.entity_id);
 
@@ -64,13 +56,15 @@ export const gmailRouter = createTRPCRouter({
         if (m.isArchived) return false;
         if (m.snoozedUntil && new Date(m.snoozedUntil) > new Date())
           return false;
+        if (input.priority !== "all") {
+          if (input.priority === "unread" && m.isRead) return false;
+          if (input.priority !== "unread" && m.priority !== input.priority)
+            return false;
+        }
         return true;
       });
 
-      if (input.priority === "unread") return enriched.filter((m) => !m.isRead);
-      if (input.priority !== "all")
-        return enriched.filter((m) => m.priority === input.priority);
-      return enriched;
+      return enriched.slice(0, input.limit);
     }),
 
   search: protectedProcedure
@@ -107,7 +101,7 @@ export const gmailRouter = createTRPCRouter({
 
   refresh: protectedProcedure.mutation(async ({ ctx }) => {
     const tenant = getTenant(ctx.session.user.id);
-    const result = await tenant.gmail.api.threads.list({ maxResults: 100 });
+    const result = await tenant.gmail.api.threads.list({ maxResults: 500 });
     return { synced: result.threads?.length ?? 0 };
   }),
 
@@ -154,6 +148,7 @@ export const gmailRouter = createTRPCRouter({
       const [row] = await db
         .insert(scheduledEmails)
         .values({
+          userId: ctx.session.user.id,
           to: input.to,
           subject: input.subject,
           body: input.body,
@@ -224,7 +219,7 @@ export const gmailRouter = createTRPCRouter({
         snoozeUntil: z.string().datetime(),
       }),
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input, ctx: _ctx }) => {
       await db
         .insert(emailTriage)
         .values({

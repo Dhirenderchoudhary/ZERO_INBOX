@@ -1,13 +1,18 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { RefreshCw, Cpu, Search, X, Inbox } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Cpu, Inbox, RefreshCw, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/trpc/react";
-import { EmailRow } from "./EmailRow";
+import { EmailRow } from "./email-row";
 import { EmailRowSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useEmailStore } from "@/hooks/useEmailStore";
+import { cn } from "@/lib/utils";
 
 const TABS = [
   { key: "all", label: "All" },
@@ -28,9 +33,10 @@ export function EmailList() {
     data: emails = [],
     refetch,
     isLoading,
+    isError,
   } = api.gmail.listWithTriage.useQuery(
-    { limit: 60, priority: filter as any },
-    { refetchInterval: 60_000 },
+    { limit: 20, priority: filter as any },
+    { refetchInterval: 60_000, retry: false },
   );
 
   const { data: searchResults = [], isFetching: isSearching } =
@@ -54,9 +60,9 @@ export function EmailList() {
       refetch();
       toast.success(`Triaged ${d.triaged} emails with AI`);
     },
+    onError: () => toast.error("AI triage failed"),
   });
 
-  // Keyboard navigation
   useEffect(() => {
     const handlers: Record<string, () => void> = {
       "nav-next": () =>
@@ -70,104 +76,58 @@ export function EmailList() {
       Object.entries(handlers).forEach(([e, h]) =>
         window.removeEventListener(e, h),
       );
-  }, [displayed.length]);
+  }, [displayed.length, refresh, triage]);
 
   return (
-    <div
-      className="relative z-10 flex h-full w-[420px] flex-shrink-0 flex-col"
-      style={{
-        background: "rgba(10, 10, 12, 0.5)",
-        backdropFilter: "var(--blur-lg)",
-        WebkitBackdropFilter: "var(--blur-lg)",
-        borderRight: "1px solid var(--border-0)",
-      }}
-    >
-      {/* Header */}
-      <div
-        className="flex-shrink-0 px-5 pt-6 pb-4"
-        style={{ borderBottom: "1px solid var(--border-0)" }}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2
-            className="t-display tracking-tight"
-            style={{ color: "var(--text-0)" }}
-          >
-            Inbox
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
+    <section className="border-border/70 bg-card flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm">
+      <div className="border-border/70 border-b p-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold tracking-tight">Inbox</h2>
+              <Badge variant="outline" className="rounded-full">
+                {displayed.length} threads
+              </Badge>
+            </div>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Prioritized by urgency, obligation, and context.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button
               onClick={() => triage.mutate()}
               disabled={triage.isPending}
-              className="t-small flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
-              style={{
-                background: triage.isPending
-                  ? "var(--bg-3)"
-                  : "var(--accent-subtle)",
-                color: "var(--accent-text)",
-                border: "1px solid var(--accent-border)",
-                boxShadow: "var(--shadow-glow)",
-              }}
+              size="sm"
+              className="rounded-xl"
             >
               <Cpu
-                size={14}
-                className={triage.isPending ? "animate-pulse" : ""}
+                className={cn("size-4", triage.isPending && "animate-pulse")}
               />
-              {triage.isPending ? "Triaging..." : "AI Triage"}
-            </button>
-            <button
+              <span className="hidden sm:inline">Triage</span>
+            </Button>
+            <Button
               onClick={() => refresh.mutate()}
               disabled={refresh.isPending}
-              className="rounded-[8px] p-2 transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] disabled:opacity-40"
-              style={{
-                background: "var(--bg-2)",
-                color: "var(--text-1)",
-                border: "1px solid var(--border-1)",
-                boxShadow: "var(--shadow-sm)",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.color = "var(--text-0)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "var(--text-1)")
-              }
+              variant="outline"
+              size="icon-sm"
+              className="rounded-xl"
             >
               <RefreshCw
-                size={14}
-                className={refresh.isPending ? "animate-spin" : ""}
+                className={cn("size-4", refresh.isPending && "animate-spin")}
               />
-            </button>
+              <span className="sr-only">Refresh</span>
+            </Button>
           </div>
         </div>
 
-        {/* Search */}
-        <div
-          className="flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 transition-all duration-200"
-          style={{
-            background: "var(--bg-1)",
-            border: "1px solid var(--border-1)",
-            boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)",
-          }}
-          onFocusCapture={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor =
-              "var(--accent-border)";
-            (e.currentTarget as HTMLElement).style.boxShadow =
-              "0 0 0 1px var(--accent-glow) inset, var(--shadow-glow)";
-          }}
-          onBlurCapture={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor =
-              "var(--border-1)";
-            (e.currentTarget as HTMLElement).style.boxShadow =
-              "inset 0 2px 4px rgba(0,0,0,0.2)";
-          }}
-        >
-          <Search size={14} style={{ color: "var(--text-2)", flexShrink: 0 }} />
-          <input
+        <div className="relative">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <Input
             ref={searchRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search your workflow..."
-            className="t-body flex-1 bg-transparent outline-none"
-            style={{ color: "var(--text-0)" }}
+            placeholder="Search sender, subject, or action..."
+            className="bg-background/70 h-11 rounded-xl pr-10 pl-9"
           />
           <AnimatePresence>
             {search && (
@@ -175,39 +135,29 @@ export function EmailList() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.1 }}
                 onClick={() => setSearch("")}
-                className="rounded-full p-1 hover:bg-white/10"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1"
               >
-                <X size={12} style={{ color: "var(--text-2)" }} />
+                <X size={14} />
               </motion.button>
             )}
           </AnimatePresence>
           {isSearching && (
-            <div
-              className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-t-transparent"
-              style={{ color: "var(--accent)" }}
-            />
+            <div className="border-primary absolute top-1/2 right-10 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-t-transparent" />
           )}
         </div>
 
-        {/* Filter tabs */}
-        <div className="mt-4 flex scrollbar-none items-center gap-1.5 overflow-x-auto pb-px">
+        <div className="mt-4 flex scrollbar-none gap-2 overflow-x-auto">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className="t-small flex-shrink-0 rounded-[6px] px-3 py-1.5 transition-all duration-200"
-              style={{
-                background: filter === tab.key ? "var(--bg-3)" : "transparent",
-                color: filter === tab.key ? "var(--text-0)" : "var(--text-2)",
-                border:
-                  filter === tab.key
-                    ? "1px solid var(--border-2)"
-                    : "1px solid transparent",
-                fontWeight: filter === tab.key ? 500 : 400,
-                boxShadow: filter === tab.key ? "var(--shadow-sm)" : "none",
-              }}
+              className={cn(
+                "relative rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                filter === tab.key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
             >
               {tab.label}
             </button>
@@ -215,22 +165,32 @@ export function EmailList() {
         </div>
       </div>
 
-      {/* Email list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="bg-muted/20 min-h-0 flex-1 overflow-y-auto py-1">
         {isLoading ? (
-          <div>
+          <div className="py-1">
             {Array.from({ length: 8 }).map((_, i) => (
               <EmailRowSkeleton key={i} />
             ))}
           </div>
+        ) : isError ? (
+          <EmptyState
+            icon={Inbox}
+            title="Connect your Gmail"
+            description="Link Gmail to unlock AI-powered triage, summaries, replies, and workflow automation."
+            action={{
+              label: "Connect Gmail",
+              onClick: () =>
+                (window.location.href = "/api/corsair/connect?plugin=gmail"),
+            }}
+          />
         ) : displayed.length === 0 ? (
           <EmptyState
             icon={search ? Search : Inbox}
-            title={search ? "No results found" : "Inbox zero"}
+            title={search ? "No matching threads" : "Inbox zero"}
             description={
               search
-                ? `No emails matching "${search}"`
-                : "All caught up. Refresh to sync Gmail."
+                ? `No emails match “${search}”. Try a broader query.`
+                : "All caught up. Refresh to sync Gmail or let the agent monitor new work."
             }
             action={
               search
@@ -257,27 +217,10 @@ export function EmailList() {
         )}
       </div>
 
-      {/* Footer bar */}
-      <div
-        className="flex flex-shrink-0 items-center justify-between px-5 py-2.5"
-        style={{
-          borderTop: "1px solid var(--border-0)",
-          background: "var(--bg-1)",
-        }}
-      >
-        <span
-          className="t-mono"
-          style={{ color: "var(--text-2)", fontSize: "11px" }}
-        >
-          {displayed.length} messages
-        </span>
-        <span
-          className="t-mono"
-          style={{ color: "var(--text-2)", fontSize: "11px" }}
-        >
-          j/k · e archive
-        </span>
+      <div className="border-border/70 bg-card text-muted-foreground flex shrink-0 items-center justify-between border-t px-4 py-3 text-xs">
+        <span>{displayed.length} messages</span>
+        <span className="font-mono">J/K navigate · E archive</span>
       </div>
-    </div>
+    </section>
   );
 }

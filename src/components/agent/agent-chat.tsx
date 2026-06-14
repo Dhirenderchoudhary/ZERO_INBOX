@@ -1,8 +1,19 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Loader2, CheckCircle2, Sparkles } from "lucide-react";
+
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bot, CheckCircle2, Loader2, Send, Sparkles, User } from "lucide-react";
 import { api } from "@/trpc/react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+const suggestions = [
+  "Summarize my urgent emails",
+  "Draft follow-ups from yesterday",
+  "Find time for a 30 minute sync",
+  "Archive low-signal newsletters",
+];
 
 export function AgentChat() {
   const [messages, setMessages] = useState<
@@ -28,282 +39,158 @@ export function AgentChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chat.isPending]);
 
-  return (
-    <div
-      className="relative flex flex-1 flex-col items-center overflow-hidden"
-      style={{ background: "var(--bg-0)" }}
-    >
-      {/* Background Glow */}
-      <div className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--accent)] opacity-[0.015] blur-[100px]" />
+  const submit = (value = input) => {
+    if (!value.trim() || chat.isPending) return;
+    setMessages((prev) => [...prev, { role: "user", content: value }]);
+    chat.mutate({
+      message: value,
+      history: messages.map((m) => ({ role: m.role, content: m.content })),
+    });
+    setInput("");
+  };
 
-      <div className="relative z-10 flex h-full w-full max-w-[760px] flex-col">
-        {/* Header */}
-        <div className="flex flex-shrink-0 items-center justify-between px-6 py-8">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-[8px]"
-              style={{
-                background: "var(--accent-glow)",
-                border: "1px solid var(--accent-border)",
-              }}
-            >
-              <Bot size={16} style={{ color: "var(--accent)" }} />
-            </div>
+  return (
+    <div className="h-full overflow-hidden p-4 sm:p-6 lg:p-8">
+      <div className="border-border/70 bg-card mx-auto flex h-full max-w-5xl flex-col overflow-hidden rounded-2xl border shadow-sm">
+        <div className="border-border/70 border-b p-5">
+          <Badge variant="outline" className="mb-3 rounded-full">
+            <Sparkles size={13} /> AI operator
+          </Badge>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="t-title" style={{ color: "var(--text-0)" }}>
-                FlowMail Agent
-              </h1>
-              <p
-                className="t-small opacity-60"
-                style={{ color: "var(--text-2)" }}
-              >
-                Native control for Inbox & Calendar
+              <h2 className="text-2xl font-semibold tracking-tight">
+                What should ZERO INBOX do?
+              </h2>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Control email and calendar workflows with natural language.
               </p>
             </div>
+            <Badge variant="secondary" className="w-fit rounded-full">
+              Mistral + Corsair tools
+            </Badge>
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 scrollbar-none space-y-8 overflow-y-auto px-6 pb-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
           {messages.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center pb-20 text-center">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              >
-                <div className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full">
-                  <div
-                    className="absolute inset-0 animate-ping rounded-full opacity-20"
-                    style={{ background: "var(--accent)" }}
-                  />
-                  <div
-                    className="absolute inset-0 rounded-full"
-                    style={{
-                      background: "var(--accent-glow)",
-                      border: "1px solid var(--accent-border)",
-                    }}
-                  />
-                  <Sparkles
-                    size={24}
-                    style={{ color: "var(--accent)" }}
-                    className="relative z-10"
-                  />
-                </div>
-                <h2
-                  className="t-display mb-3"
-                  style={{ color: "var(--text-0)" }}
-                >
-                  How can I help?
-                </h2>
-                <p
-                  className="t-body mx-auto max-w-sm"
-                  style={{ color: "var(--text-2)" }}
-                >
-                  I can read emails, draft replies, and manage your calendar
-                  entirely natively.
-                </p>
-                <div className="mt-8 flex flex-col gap-2">
-                  <div
-                    className="t-small mx-auto inline-block rounded-full px-4 py-2"
-                    style={{
-                      background: "var(--bg-2)",
-                      color: "var(--text-1)",
-                      border: "1px solid var(--border-1)",
-                    }}
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <div className="bg-primary text-primary-foreground shadow-primary/10 mb-5 flex size-16 items-center justify-center rounded-2xl shadow-lg">
+                <Bot size={28} />
+              </div>
+              <h3 className="text-2xl font-semibold tracking-tight">
+                Delegate the busywork.
+              </h3>
+              <p className="text-muted-foreground mt-2 max-w-md text-sm leading-6">
+                Ask the agent to summarize, draft, schedule, triage, or execute
+                routine communication tasks.
+              </p>
+              <div className="mt-6 grid w-full max-w-2xl gap-2 sm:grid-cols-2">
+                {suggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => submit(suggestion)}
+                    className="border-border/70 bg-background/70 hover:bg-muted rounded-xl border p-3 text-left text-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
                   >
-                    "Email John that I'm running 5 mins late"
-                  </div>
-                  <div
-                    className="t-small mx-auto inline-block rounded-full px-4 py-2"
-                    style={{
-                      background: "var(--bg-2)",
-                      color: "var(--text-1)",
-                      border: "1px solid var(--border-1)",
-                    }}
-                  >
-                    "Clear out my newsletters"
-                  </div>
-                </div>
-              </motion.div>
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          <AnimatePresence>
-            {messages.map((msg, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
-              >
-                <div
-                  className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
-                  style={{
-                    background:
-                      msg.role === "user"
-                        ? "var(--bg-3)"
-                        : "var(--accent-glow)",
-                    border:
-                      msg.role === "user"
-                        ? "1px solid var(--border-1)"
-                        : "1px solid var(--accent-border)",
-                    boxShadow:
-                      msg.role === "user"
-                        ? "var(--shadow-sm)"
-                        : "var(--shadow-glow)",
-                  }}
-                >
-                  {msg.role === "user" ? (
-                    <User size={14} style={{ color: "var(--text-1)" }} />
-                  ) : (
-                    <Bot size={14} style={{ color: "var(--accent)" }} />
-                  )}
-                </div>
-
-                <div
-                  className={`flex max-w-[85%] flex-col gap-2 ${msg.role === "user" ? "items-end" : "items-start"}`}
+          <div className="space-y-6">
+            <AnimatePresence>
+              {messages.map((msg, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                 >
                   <div
-                    className="t-body rounded-[18px] px-5 py-3 leading-relaxed"
-                    style={{
-                      background:
-                        msg.role === "user" ? "var(--bg-2)" : "transparent",
-                      color: "var(--text-0)",
-                      border:
-                        msg.role === "user"
-                          ? "1px solid var(--border-1)"
-                          : "none",
-                    }}
+                    className={`flex size-9 shrink-0 items-center justify-center rounded-full ${msg.role === "user" ? "bg-muted" : "bg-primary text-primary-foreground"}`}
                   >
-                    {msg.content}
+                    {msg.role === "user" ? (
+                      <User size={16} />
+                    ) : (
+                      <Bot size={16} />
+                    )}
                   </div>
+                  <div
+                    className={`max-w-[82%] ${msg.role === "user" ? "items-end" : "items-start"}`}
+                  >
+                    <Card
+                      className={
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background/70"
+                      }
+                    >
+                      <CardContent className="p-4 text-sm leading-7">
+                        {msg.content}
+                      </CardContent>
+                    </Card>
+                    {msg.actions && msg.actions.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {msg.actions.map((action, i) => (
+                          <div
+                            key={i}
+                            className="border-border/70 flex items-center gap-2 rounded-xl border bg-emerald-500/10 px-3 py-2 text-xs text-emerald-600 dark:text-emerald-300"
+                          >
+                            <CheckCircle2 size={13} /> {action}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
 
-                  {msg.actions && msg.actions.length > 0 && (
-                    <div className="mt-1 flex flex-col gap-2 px-4">
-                      {msg.actions.map((action, i) => (
-                        <div
-                          key={i}
-                          className="t-small flex items-center gap-2 rounded-[8px] px-3 py-1.5 font-medium"
-                          style={{
-                            background: "var(--bg-1)",
-                            color: "var(--accent-text)",
-                            border: "1px solid var(--border-1)",
-                            boxShadow: "var(--shadow-sm)",
-                          }}
-                        >
-                          <CheckCircle2 size={12} className="opacity-70" />
-                          {action}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+            {chat.isPending && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex gap-3"
+              >
+                <div className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-full">
+                  <Bot size={16} />
+                </div>
+                <div className="bg-muted text-muted-foreground flex items-center gap-2 rounded-xl px-4 py-3 text-sm">
+                  <Loader2 size={15} className="animate-spin" /> Thinking
+                  through tools...
                 </div>
               </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {chat.isPending && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex gap-4"
-            >
-              <div
-                className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
-                style={{
-                  background: "var(--accent-glow)",
-                  border: "1px solid var(--accent-border)",
-                  boxShadow: "var(--shadow-glow)",
-                }}
-              >
-                <Bot size={14} style={{ color: "var(--accent)" }} />
-              </div>
-              <div
-                className="t-body flex items-center gap-3 rounded-2xl px-4 py-3"
-                style={{ color: "var(--text-2)" }}
-              >
-                <Loader2 size={14} className="animate-spin" /> Thinking
-                natively...
-              </div>
-            </motion.div>
-          )}
-          <div ref={bottomRef} className="h-4" />
+            )}
+            <div ref={bottomRef} />
+          </div>
         </div>
 
-        {/* Input Bar */}
-        <div className="flex-shrink-0 p-6 pt-2 pb-8">
+        <div className="border-border/70 bg-muted/30 border-t p-4 sm:p-5">
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (!input.trim() || chat.isPending) return;
-              setMessages((prev) => [
-                ...prev,
-                { role: "user", content: input },
-              ]);
-              chat.mutate({
-                message: input,
-                history: messages.map((m) => ({
-                  role: m.role,
-                  content: m.content,
-                })),
-              });
-              setInput("");
+              submit();
             }}
-            className="group relative flex items-center gap-3 rounded-[16px] px-5 py-3 transition-all duration-300"
-            style={{
-              background: "var(--bg-1)",
-              border: "1px solid var(--border-1)",
-              boxShadow:
-                "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02) inset",
-            }}
-            onFocusCapture={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent-border)";
-              e.currentTarget.style.boxShadow =
-                "var(--shadow-glow), 0 8px 32px rgba(0,0,0,0.6)";
-            }}
-            onBlurCapture={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-1)";
-              e.currentTarget.style.boxShadow =
-                "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02) inset";
-            }}
+            className="border-border/70 bg-background focus-within:ring-ring/40 flex items-end gap-3 rounded-2xl border p-2 shadow-sm focus-within:ring-2"
           >
-            <Sparkles
-              size={18}
-              style={{ color: "var(--text-2)" }}
-              className="transition-colors duration-300 group-focus-within:text-[var(--accent)]"
-            />
-            <input
+            <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Tell FlowMail what to do..."
-              className="t-title flex-1 bg-transparent py-1 outline-none"
-              style={{ color: "var(--text-0)", fontWeight: 400 }}
-              autoFocus
+              placeholder="Tell the agent what outcome you want..."
+              className="placeholder:text-muted-foreground max-h-32 min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none"
+              rows={1}
             />
-            <button
+            <Button
               type="submit"
               disabled={!input.trim() || chat.isPending}
-              className="rounded-[8px] p-2 transition-all duration-200 hover:scale-110 active:scale-95 disabled:scale-100 disabled:opacity-30"
-              style={{
-                background: input.trim() ? "var(--accent)" : "var(--bg-3)",
-                color: input.trim() ? "#000" : "var(--text-2)",
-              }}
+              size="icon"
+              className="rounded-xl"
             >
-              <Send
-                size={16}
-                className={chat.isPending ? "animate-pulse" : ""}
-              />
-            </button>
+              <Send size={16} />
+              <span className="sr-only">Send</span>
+            </Button>
           </form>
-          <div className="mt-3 text-center">
-            <span
-              className="t-mono"
-              style={{ color: "var(--text-3)", fontSize: "10px" }}
-            >
-              Powered by Mistral & Corsair API
-            </span>
-          </div>
         </div>
       </div>
     </div>

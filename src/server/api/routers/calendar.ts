@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { getTenant } from "../../lib/tenant";
-import { addDays, startOfWeek, endOfWeek, format } from "date-fns";
+import { addDays } from "date-fns";
 
 export const calendarRouter = createTRPCRouter({
   getWeekEvents: protectedProcedure

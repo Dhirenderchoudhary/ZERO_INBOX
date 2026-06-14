@@ -1,8 +1,12 @@
 "use client";
+
 import { useState } from "react";
-import { X, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { addHours, format } from "date-fns";
+import { Calendar as CalendarIcon, Loader2, X } from "lucide-react";
 import { api } from "@/trpc/react";
-import { format, addHours } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function CreateEventModal({ onClose }: { onClose: () => void }) {
   const [summary, setSummary] = useState("");
@@ -19,120 +23,85 @@ export function CreateEventModal({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="bg-background/70 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div
-        className="w-[400px] overflow-hidden rounded-xl shadow-2xl"
-        style={{
-          background: "var(--bg-2)",
-          border: "1px solid var(--border-1)",
-        }}
+        className="border-border/70 bg-card w-full max-w-lg overflow-hidden rounded-2xl border shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="event-title"
       >
-        <div
-          className="flex items-center justify-between border-b px-4 py-3"
-          style={{ borderColor: "var(--border-0)" }}
-        >
-          <span
-            className="text-small font-semibold"
-            style={{ color: "var(--text-0)" }}
-          >
-            New Event
-          </span>
-          <button
+        <div className="border-border/70 bg-muted/40 flex items-center justify-between border-b px-5 py-4">
+          <div>
+            <h2 id="event-title" className="text-sm font-semibold">
+              New event
+            </h2>
+            <p className="text-muted-foreground text-xs">
+              Create a calendar hold with clear ownership.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-xl"
             onClick={onClose}
-            className="rounded p-1 hover:opacity-80"
-            style={{ color: "var(--text-2)" }}
           >
-            <X size={14} />
-          </button>
+            <X size={16} />
+            <span className="sr-only">Close</span>
+          </Button>
         </div>
 
-        <div className="flex flex-col gap-3 p-4">
-          <div>
-            <label
-              className="text-micro mb-1 block"
-              style={{ color: "var(--text-2)" }}
-            >
-              Event Title
-            </label>
-            <input
+        <div className="grid gap-4 p-5">
+          <div className="grid gap-2">
+            <Label htmlFor="event-summary">Event title</Label>
+            <Input
+              id="event-summary"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               autoFocus
-              className="text-small w-full rounded px-3 py-1.5 outline-none"
-              style={{
-                background: "var(--bg-3)",
-                color: "var(--text-0)",
-                border: "1px solid var(--border-1)",
-              }}
+              placeholder="Customer follow-up"
             />
           </div>
-
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label
-                className="text-micro mb-1 block"
-                style={{ color: "var(--text-2)" }}
-              >
-                Start Time
-              </label>
-              <input
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="event-start">Start time</Label>
+              <Input
+                id="event-start"
                 type="datetime-local"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="text-small w-full rounded px-3 py-1.5 outline-none"
-                style={{
-                  background: "var(--bg-3)",
-                  color: "var(--text-0)",
-                  border: "1px solid var(--border-1)",
-                }}
               />
             </div>
-            <div className="flex-1">
-              <label
-                className="text-micro mb-1 block"
-                style={{ color: "var(--text-2)" }}
-              >
-                End Time
-              </label>
-              <input
+            <div className="grid gap-2">
+              <Label htmlFor="event-end">End time</Label>
+              <Input
+                id="event-end"
                 type="datetime-local"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="text-small w-full rounded px-3 py-1.5 outline-none"
-                style={{
-                  background: "var(--bg-3)",
-                  color: "var(--text-0)",
-                  border: "1px solid var(--border-1)",
-                }}
               />
             </div>
           </div>
-
-          <div>
-            <label
-              className="text-micro mb-1 block"
-              style={{ color: "var(--text-2)" }}
-            >
-              Attendees (comma separated)
-            </label>
-            <input
+          <div className="grid gap-2">
+            <Label htmlFor="event-attendees">Attendees</Label>
+            <Input
+              id="event-attendees"
               value={attendees}
               onChange={(e) => setAttendees(e.target.value)}
-              className="text-small w-full rounded px-3 py-1.5 outline-none"
-              style={{
-                background: "var(--bg-3)",
-                color: "var(--text-0)",
-                border: "1px solid var(--border-1)",
-              }}
+              placeholder="teammate@company.com, client@company.com"
             />
+            <p className="text-muted-foreground text-xs">
+              Comma-separated email addresses. Invites are sent through Google
+              Calendar.
+            </p>
           </div>
         </div>
 
-        <div
-          className="flex justify-end border-t px-4 py-3"
-          style={{ borderColor: "var(--border-0)", background: "var(--bg-1)" }}
-        >
-          <button
+        <div className="border-border/70 bg-muted/30 flex flex-col-reverse gap-2 border-t px-5 py-4 sm:flex-row sm:justify-end">
+          <Button variant="outline" className="rounded-xl" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="rounded-xl"
             onClick={() =>
               create.mutate({
                 summary,
@@ -145,16 +114,14 @@ export function CreateEventModal({ onClose }: { onClose: () => void }) {
               })
             }
             disabled={!summary || create.isPending}
-            className="text-small flex items-center gap-2 rounded px-4 py-1.5 font-medium transition-colors hover:opacity-90 disabled:opacity-50"
-            style={{ background: "var(--accent)", color: "#000" }}
           >
             {create.isPending ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={15} className="animate-spin" />
             ) : (
-              <CalendarIcon size={14} />
+              <CalendarIcon size={15} />
             )}
-            Create Event
-          </button>
+            Create event
+          </Button>
         </div>
       </div>
     </div>

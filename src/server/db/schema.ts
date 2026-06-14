@@ -140,6 +140,7 @@ export const emailTriage = pgTable("email_triage", {
 
 export const scheduledEmails = pgTable("scheduled_emails", {
   id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
   to: text("to").notNull(),
   subject: text("subject").notNull(),
   body: text("body").notNull(),

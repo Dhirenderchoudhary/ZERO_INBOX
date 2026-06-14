@@ -1,15 +1,9 @@
 "use client";
+
 import { format, isToday, isYesterday } from "date-fns";
 import { Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const PRIORITY_COLORS: Record<string, string> = {
-  urgent: "var(--urgent)",
-  needs_reply: "var(--reply)",
-  fyi: "var(--fyi)",
-  newsletter: "var(--newsletter)",
-  other: "transparent",
-};
 
 function formatEmailTime(dateStr: string | undefined): string {
   if (!dateStr) return "";
@@ -29,6 +23,7 @@ function parseSenderName(from: string | undefined): string {
 
 interface EmailRowProps {
   email: any;
+  index?: number;
   isSelected: boolean;
   isFocused: boolean;
   onClick: () => void;
@@ -40,88 +35,78 @@ export function EmailRow({
   isFocused,
   onClick,
 }: EmailRowProps) {
-  const priority = email?.priority ?? "other";
   const isUnread = !email?.isRead;
+  const sender = parseSenderName(
+    email?.data?.from ?? email?.fromAddress ?? email?.from,
+  );
+  const subject = email?.data?.subject ?? email?.subject ?? "(no subject)";
+  const snippet = email?.data?.snippet ?? email?.snippet ?? "";
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className="relative flex cursor-pointer items-start gap-3 border-b px-4 py-3 transition-colors"
-      style={{
-        borderColor: "var(--border-0)",
-        background: isSelected
-          ? "var(--accent-glow)"
+      className={cn(
+        "group mx-3 my-2 w-[calc(100%-1.5rem)] rounded-2xl border p-4 text-left transition-all duration-200",
+        "hover:border-border hover:bg-card hover:-translate-y-0.5 hover:shadow-md",
+        isSelected
+          ? "border-primary/30 bg-card ring-primary/10 shadow-md ring-1"
           : isFocused
-            ? "var(--bg-3)"
-            : isUnread
-              ? "var(--bg-2)"
-              : "transparent",
-        borderLeft: `2px solid ${isSelected ? "var(--accent)" : PRIORITY_COLORS[priority] || "transparent"}`,
-        paddingLeft:
-          isSelected ||
-          (PRIORITY_COLORS[priority] || "transparent") !== "transparent"
-            ? "14px"
-            : "16px",
-      }}
-    >
-      <div className="mt-1.5 flex-shrink-0">
-        <div
-          className="h-1.5 w-1.5 rounded-full transition-opacity"
-          style={{
-            background: "var(--accent)",
-            opacity: isUnread ? 1 : 0,
-          }}
-        />
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="mb-0.5 flex items-center justify-between">
-          <span
-            className="text-small truncate"
-            style={{
-              color: "var(--text-0)",
-              fontWeight: isUnread ? 600 : 400,
-            }}
-          >
-            {parseSenderName(
-              email?.data?.from ?? email?.fromAddress ?? email?.from,
-            )}
-          </span>
-          <span
-            className="text-mono ml-2 flex-shrink-0"
-            style={{ color: "var(--text-3)" }}
-          >
-            {formatEmailTime(
-              email?.data?.date ??
-                email?.updated_at ??
-                new Date().toISOString(),
-            )}
-          </span>
-        </div>
-
-        <p
-          className="text-small mb-0.5 truncate"
-          style={{
-            color: isUnread ? "var(--text-0)" : "var(--text-1)",
-            fontWeight: isUnread ? 500 : 400,
-          }}
-        >
-          {email?.data?.subject ?? email?.subject ?? "(no subject)"}
-        </p>
-
-        <p className="text-micro truncate" style={{ color: "var(--text-2)" }}>
-          {email?.data?.snippet ?? email?.snippet ?? ""}
-        </p>
-      </div>
-
-      {email?.isStarred && (
-        <Star
-          size={11}
-          fill="var(--accent)"
-          color="var(--accent)"
-          className="mt-1 flex-shrink-0"
-        />
+            ? "border-border bg-card/80"
+            : "border-border/60 bg-card/55",
       )}
-    </div>
+    >
+      <div className="flex items-start gap-3">
+        <div className="bg-muted text-muted-foreground relative flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
+          {sender.charAt(0).toUpperCase()}
+          {isUnread && (
+            <span className="ring-card absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-blue-500 ring-2" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p
+              className={cn(
+                "truncate text-sm",
+                isUnread
+                  ? "font-semibold"
+                  : "text-muted-foreground font-medium",
+              )}
+            >
+              {sender}
+            </p>
+            {isUnread && (
+              <Badge
+                variant="secondary"
+                className="h-5 rounded-full text-[10px]"
+              >
+                New
+              </Badge>
+            )}
+            <span className="text-muted-foreground ml-auto shrink-0 font-mono text-[11px]">
+              {formatEmailTime(
+                email?.data?.date ??
+                  email?.updated_at ??
+                  new Date().toISOString(),
+              )}
+            </span>
+          </div>
+          <p className="text-foreground/90 mt-1 truncate text-sm font-medium">
+            {subject}
+          </p>
+          <p className="text-muted-foreground mt-1 line-clamp-2 text-xs leading-5">
+            {snippet}
+          </p>
+          <div className="mt-3 flex items-center justify-between">
+            <Badge variant="outline" className="rounded-full text-[10px]">
+              AI triaged
+            </Badge>
+            {email?.isStarred && (
+              <Star size={14} className="fill-amber-400 text-amber-400" />
+            )}
+          </div>
+        </div>
+      </div>
+    </button>
   );
 }

@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const tenant = getTenant();
   const due = await db
     .select()
     .from(scheduledEmails)
@@ -26,6 +25,7 @@ export async function GET(req: NextRequest) {
   let sent = 0;
   for (const email of due) {
     try {
+      const tenant = getTenant(email.userId);
       const raw = encodeRawEmail({
         to: email.to,
         subject: email.subject,
