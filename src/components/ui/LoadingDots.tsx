@@ -1,10 +1,10 @@
-export function LoadingDots({ color = 'var(--accent)' }: { color?: string }) {
+export function LoadingDots({ color = "var(--accent)" }: { color?: string }) {
   return (
     <span className="inline-flex items-center gap-[3px]">
-      {[0, 1, 2].map(i => (
+      {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="inline-block w-[5px] h-[5px] rounded-full dot-bounce"
+          className="dot-bounce inline-block h-[5px] w-[5px] rounded-full"
           style={{ background: color, animationDelay: `${i * 0.16}s` }}
         />
       ))}

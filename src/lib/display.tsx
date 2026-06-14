@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 
-const URL_RE =
-  /(https?:\/\/[^\s<]+[^\s<.,;:!?'")\]}>])/g;
+const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?'")\]}>])/g;
 
 export function parseEmailAddress(raw: string) {
   const trimmed = raw.trim();
-  const match = trimmed.match(/^(.+?)\s*<([^>]+)>$/);
+  const match = /^(.+?)\s*<([^>]+)>$/.exec(trimmed);
   if (match) {
     return {
       name: match[1]!.replace(/^"|"$/g, "").trim(),
@@ -27,8 +26,7 @@ export function formatSender(raw: string): ReactNode {
       {i > 0 && ", "}
       {part.name && part.email ? (
         <>
-          {part.name} (
-          <a href={`mailto:${part.email}`}>{part.email}</a>)
+          {part.name} (<a href={`mailto:${part.email}`}>{part.email}</a>)
         </>
       ) : part.email ? (
         <a href={`mailto:${part.email}`}>{part.email}</a>

@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface EmailStore {
   selectedId: string | null;
@@ -6,7 +6,9 @@ interface EmailStore {
   composeOpen: boolean;
   setComposeOpen: (open: boolean) => void;
   replyTo: { from: string; subject: string; body?: string } | null;
-  setReplyTo: (reply: { from: string; subject: string; body?: string } | null) => void;
+  setReplyTo: (
+    reply: { from: string; subject: string; body?: string } | null,
+  ) => void;
 }
 
 export const useEmailStore = create<EmailStore>((set) => ({

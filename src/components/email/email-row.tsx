@@ -1,28 +1,30 @@
-'use client';
-import { format, isToday, isYesterday } from 'date-fns';
-import { Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
+"use client";
+import { format, isToday, isYesterday } from "date-fns";
+import { Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const PRIORITY_COLORS: Record<string, string> = {
-  urgent:      'var(--urgent)',
-  needs_reply: 'var(--reply)',
-  fyi:         'var(--fyi)',
-  newsletter:  'var(--newsletter)',
-  other:       'transparent',
+  urgent: "var(--urgent)",
+  needs_reply: "var(--reply)",
+  fyi: "var(--fyi)",
+  newsletter: "var(--newsletter)",
+  other: "transparent",
 };
 
 function formatEmailTime(dateStr: string | undefined): string {
-  if (!dateStr) return '';
+  if (!dateStr) return "";
   const d = new Date(dateStr);
-  if (isToday(d)) return format(d, 'h:mm a');
-  if (isYesterday(d)) return 'Yesterday';
-  return format(d, 'MMM d');
+  if (isToday(d)) return format(d, "h:mm a");
+  if (isYesterday(d)) return "Yesterday";
+  return format(d, "MMM d");
 }
 
 function parseSenderName(from: string | undefined): string {
-  if (!from) return 'Unknown';
-  const match = from.match(/^([^<]+)</);
-  return match ? (match[1]?.trim() ?? 'Unknown') : (from.split('@')[0] || 'Unknown');
+  if (!from) return "Unknown";
+  const match = /^([^<]+)</.exec(from);
+  return match
+    ? (match[1]?.trim() ?? "Unknown")
+    : from.split("@")[0] || "Unknown";
 }
 
 interface EmailRowProps {
@@ -32,70 +34,93 @@ interface EmailRowProps {
   onClick: () => void;
 }
 
-export function EmailRow({ email, isSelected, isFocused, onClick }: EmailRowProps) {
-  const priority = email?.priority ?? 'other';
+export function EmailRow({
+  email,
+  isSelected,
+  isFocused,
+  onClick,
+}: EmailRowProps) {
+  const priority = email?.priority ?? "other";
   const isUnread = !email?.isRead;
 
   return (
     <div
       onClick={onClick}
-      className="relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b"
+      className="relative flex cursor-pointer items-start gap-3 border-b px-4 py-3 transition-colors"
       style={{
-        borderColor: 'var(--border-0)',
+        borderColor: "var(--border-0)",
         background: isSelected
-          ? 'var(--accent-glow)'
+          ? "var(--accent-glow)"
           : isFocused
-          ? 'var(--bg-3)'
-          : isUnread
-          ? 'var(--bg-2)'
-          : 'transparent',
-        borderLeft: `2px solid ${isSelected ? 'var(--accent)' : (PRIORITY_COLORS[priority] || 'transparent')}`,
-        paddingLeft: isSelected || (PRIORITY_COLORS[priority] || 'transparent') !== 'transparent' ? '14px' : '16px',
+            ? "var(--bg-3)"
+            : isUnread
+              ? "var(--bg-2)"
+              : "transparent",
+        borderLeft: `2px solid ${isSelected ? "var(--accent)" : PRIORITY_COLORS[priority] || "transparent"}`,
+        paddingLeft:
+          isSelected ||
+          (PRIORITY_COLORS[priority] || "transparent") !== "transparent"
+            ? "14px"
+            : "16px",
       }}
     >
       <div className="mt-1.5 flex-shrink-0">
         <div
-          className="w-1.5 h-1.5 rounded-full transition-opacity"
+          className="h-1.5 w-1.5 rounded-full transition-opacity"
           style={{
-            background: 'var(--accent)',
+            background: "var(--accent)",
             opacity: isUnread ? 1 : 0,
           }}
         />
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-0.5">
+      <div className="min-w-0 flex-1">
+        <div className="mb-0.5 flex items-center justify-between">
           <span
             className="text-small truncate"
             style={{
-              color: 'var(--text-0)',
+              color: "var(--text-0)",
               fontWeight: isUnread ? 600 : 400,
             }}
           >
-            {parseSenderName(email?.data?.from ?? email?.fromAddress ?? email?.from)}
+            {parseSenderName(
+              email?.data?.from ?? email?.fromAddress ?? email?.from,
+            )}
           </span>
-          <span className="text-mono flex-shrink-0 ml-2" style={{ color: 'var(--text-3)' }}>
-            {formatEmailTime(email?.data?.date ?? email?.updated_at ?? new Date().toISOString())}
+          <span
+            className="text-mono ml-2 flex-shrink-0"
+            style={{ color: "var(--text-3)" }}
+          >
+            {formatEmailTime(
+              email?.data?.date ??
+                email?.updated_at ??
+                new Date().toISOString(),
+            )}
           </span>
         </div>
 
         <p
-          className="text-small truncate mb-0.5"
+          className="text-small mb-0.5 truncate"
           style={{
-            color: isUnread ? 'var(--text-0)' : 'var(--text-1)',
+            color: isUnread ? "var(--text-0)" : "var(--text-1)",
             fontWeight: isUnread ? 500 : 400,
           }}
         >
-          {email?.data?.subject ?? email?.subject ?? '(no subject)'}
+          {email?.data?.subject ?? email?.subject ?? "(no subject)"}
         </p>
 
-        <p className="text-micro truncate" style={{ color: 'var(--text-2)' }}>
-          {email?.data?.snippet ?? email?.snippet ?? ''}
+        <p className="text-micro truncate" style={{ color: "var(--text-2)" }}>
+          {email?.data?.snippet ?? email?.snippet ?? ""}
         </p>
       </div>
 
       {email?.isStarred && (
-        <Star size={11} fill="var(--accent)" color="var(--accent)" className="mt-1 flex-shrink-0" />
+        <Star
+          size={11}
+          fill="var(--accent)"
+          color="var(--accent)"
+          className="mt-1 flex-shrink-0"
+        />
       )}
     </div>
   );

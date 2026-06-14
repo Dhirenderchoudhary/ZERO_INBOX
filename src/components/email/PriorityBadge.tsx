@@ -1,32 +1,32 @@
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 const BADGE_CONFIG = {
   urgent: {
-    label: 'Urgent',
-    color: 'var(--urgent)',
-    bg: 'var(--urgent-bg)',
-    border: 'var(--urgent-border)',
+    label: "Urgent",
+    color: "var(--urgent)",
+    bg: "var(--urgent-bg)",
+    border: "var(--urgent-border)",
     dot: true,
   },
   needs_reply: {
-    label: 'Reply',
-    color: 'var(--reply)',
-    bg: 'var(--reply-bg)',
-    border: 'var(--reply-border)',
+    label: "Reply",
+    color: "var(--reply)",
+    bg: "var(--reply-bg)",
+    border: "var(--reply-border)",
     dot: false,
   },
   fyi: {
-    label: 'FYI',
-    color: 'var(--fyi)',
-    bg: 'var(--fyi-bg)',
-    border: 'var(--fyi-border)',
+    label: "FYI",
+    color: "var(--fyi)",
+    bg: "var(--fyi-bg)",
+    border: "var(--fyi-border)",
     dot: false,
   },
   newsletter: {
-    label: 'List',
-    color: 'var(--newsletter)',
-    bg: 'var(--newsletter-bg)',
-    border: 'var(--newsletter-border)',
+    label: "List",
+    color: "var(--newsletter)",
+    bg: "var(--newsletter-bg)",
+    border: "var(--newsletter-border)",
     dot: false,
   },
 } as const;
@@ -46,8 +46,11 @@ export function PriorityBadge({ priority }: { priority: string }) {
     >
       {cfg.dot && (
         <span
-          className="w-[5px] h-[5px] rounded-full flex-shrink-0"
-          style={{ background: cfg.color, animation: 'pulse-dot 2s ease-in-out infinite' }}
+          className="h-[5px] w-[5px] flex-shrink-0 rounded-full"
+          style={{
+            background: cfg.color,
+            animation: "pulse-dot 2s ease-in-out infinite",
+          }}
         />
       )}
       {cfg.label}
