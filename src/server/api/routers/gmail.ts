@@ -33,6 +33,8 @@ export const gmailRouter = createTRPCRouter({
             "newsletter",
             "other",
             "unread",
+            "starred",
+            "sent",
           ])
           .default("all"),
       }),
@@ -56,12 +58,14 @@ export const gmailRouter = createTRPCRouter({
         if (m.isArchived) return false;
         if (m.snoozedUntil && new Date(m.snoozedUntil) > new Date())
           return false;
-        if (input.priority !== "all") {
-          if (input.priority === "unread" && m.isRead) return false;
-          if (input.priority !== "unread" && m.priority !== input.priority)
-            return false;
+        if (input.priority === "all") return true;
+        if (input.priority === "unread") return !m.isRead;
+        if (input.priority === "starred") return m.isStarred;
+        if (input.priority === "sent") {
+          const labelIds = m.data?.labelIds ?? m.labelIds ?? [];
+          return Array.isArray(labelIds) && labelIds.includes("SENT");
         }
-        return true;
+        return m.priority === input.priority;
       });
 
       return enriched.slice(0, input.limit);
@@ -87,16 +91,24 @@ export const gmailRouter = createTRPCRouter({
     .input(z.object({ entityId: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
+      let cached: any = null;
+
       try {
-        const cached = await tenant.gmail.db.messages.findByEntityId(
-          input.entityId,
-        );
-        if (cached?.data?.body || cached?.data?.payload) return cached;
+        cached = await tenant.gmail.db.messages.findByEntityId(input.entityId);
+        if (cached?.data?.body || cached?.data?.payload || cached?.payload) {
+          return cached;
+        }
       } catch {}
-      return tenant.gmail.api.messages.get({
-        id: input.entityId,
-        format: "full",
-      });
+
+      try {
+        return await tenant.gmail.api.messages.get({
+          id: input.entityId,
+          format: "full",
+        });
+      } catch (error) {
+        if (cached) return cached;
+        throw error;
+      }
     }),
 
   refresh: protectedProcedure.mutation(async ({ ctx }) => {
@@ -163,10 +175,24 @@ export const gmailRouter = createTRPCRouter({
     .input(z.object({ entityId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
-      await tenant.gmail.api.messages.modify({
-        id: input.entityId,
-        removeLabelIds: ["UNREAD"],
-      });
+      let syncedToGmail = true;
+
+      try {
+        await tenant.gmail.api.messages.modify({
+          id: input.entityId,
+          removeLabelIds: ["UNREAD"],
+        });
+      } catch (error) {
+        syncedToGmail = false;
+        console.warn(
+          "Failed to sync Gmail read state; keeping local read state",
+          {
+            entityId: input.entityId,
+            error,
+          },
+        );
+      }
+
       await db
         .insert(emailTriage)
         .values({ entityId: input.entityId, isRead: true })
@@ -174,6 +200,8 @@ export const gmailRouter = createTRPCRouter({
           target: emailTriage.entityId,
           set: { isRead: true, updatedAt: new Date() },
         });
+
+      return { syncedToGmail };
     }),
 
   archive: protectedProcedure

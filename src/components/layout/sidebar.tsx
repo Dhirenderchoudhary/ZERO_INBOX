@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   BarChart3,
   Bot,
@@ -58,7 +58,9 @@ export function Sidebar({
   activePath?: string;
 }) {
   const currentPathname = usePathname();
+  const searchParams = useSearchParams();
   const pathname = activePath ?? currentPathname;
+  const currentSearch = searchParams.toString();
   const primaryNav = createPrimaryNav(dashboardHref);
 
   return (
@@ -80,7 +82,7 @@ export function Sidebar({
           {!collapsed && (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold tracking-tight">
-                ZERO INBOX
+                ZERO_INBOX
               </p>
               <p className="text-muted-foreground truncate text-xs">
                 AI workflow command center
@@ -117,6 +119,7 @@ export function Sidebar({
           title="Command"
           items={primaryNav}
           pathname={pathname}
+          currentSearch={currentSearch}
           collapsed={collapsed}
           onNavigate={onNavigate}
         />
@@ -125,6 +128,7 @@ export function Sidebar({
           title="Workspace"
           items={workspaceNav}
           pathname={pathname}
+          currentSearch={currentSearch}
           collapsed={collapsed}
           onNavigate={onNavigate}
         />
@@ -195,12 +199,14 @@ function NavSection({
   title,
   items,
   pathname,
+  currentSearch,
   collapsed,
   onNavigate,
 }: {
   title: string;
   items: Array<{ label: string; href: string; icon: any; badge?: string }>;
   pathname: string;
+  currentSearch: string;
   collapsed: boolean;
   onNavigate?: () => void;
 }) {
@@ -209,12 +215,16 @@ function NavSection({
       {!collapsed && <SectionLabel>{title}</SectionLabel>}
       <div className="mt-2 space-y-1">
         {items.map((item) => {
-          const itemPath = item.href.split("?")[0] ?? item.href;
-          const active =
-            pathname === itemPath ||
-            (itemPath !== "/dashboard" &&
-              itemPath !== "/" &&
-              pathname.startsWith(itemPath));
+          const url = new URL(item.href, "https://zero-inbox.local");
+          const itemPath = url.pathname;
+          const itemSearch = url.searchParams.toString();
+          const hasSearch = item.href.includes("?");
+          const active = hasSearch
+            ? pathname === itemPath && currentSearch === itemSearch
+            : pathname === itemPath ||
+              (itemPath !== "/dashboard" &&
+                itemPath !== "/" &&
+                pathname.startsWith(itemPath));
           return (
             <Link
               key={item.href}

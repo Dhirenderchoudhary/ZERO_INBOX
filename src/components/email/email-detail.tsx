@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Archive,
@@ -42,6 +42,10 @@ export function EmailDetail() {
   const [showReply, setShowReply] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
   const [draftBody, setDraftBody] = useState("");
+  const markedReadIdsRef = useRef(new Set<string>());
+  const markReadMutateRef = useRef<
+    ReturnType<typeof api.gmail.markRead.useMutation>["mutate"] | null
+  >(null);
 
   const { data: email, isLoading } = api.gmail.getOne.useQuery(
     { entityId: selectedId! },
@@ -62,8 +66,7 @@ export function EmailDetail() {
     },
   });
   const toggleStar = api.gmail.toggleStar.useMutation({
-    onSuccess: () =>
-      toast.success((email as any)?.isStarred ? "Unstarred" : "Starred"),
+    onSuccess: () => toast.success(email?.isStarred ? "Unstarred" : "Starred"),
   });
   const summarize = api.ai.summarize.useMutation({
     onSuccess: (d) => setAiSummary(d.summary),
@@ -76,18 +79,35 @@ export function EmailDetail() {
   });
 
   useEffect(() => {
-    if (!selectedId || !email) return;
-    markRead.mutate({ entityId: selectedId });
+    markReadMutateRef.current = markRead.mutate;
+  }, [markRead.mutate]);
+
+  useEffect(() => {
     setAiSummary("");
     setShowReply(false);
     setDraftBody("");
-  }, [selectedId, email, markRead]);
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (!selectedId || !email || markedReadIdsRef.current.has(selectedId))
+      return;
+
+    markedReadIdsRef.current.add(selectedId);
+    markReadMutateRef.current?.(
+      { entityId: selectedId },
+      {
+        onError: () => {
+          markedReadIdsRef.current.delete(selectedId);
+        },
+      },
+    );
+  }, [selectedId, email]);
 
   useEffect(() => {
     const onArchive = () =>
       selectedId && archive.mutate({ entityId: selectedId });
     const onReply = () => {
-      const e = email as any;
+      const e = email;
       if (!e) return;
       draftReply.mutate({
         subject: e.data?.subject ?? "",
@@ -96,7 +116,7 @@ export function EmailDetail() {
       });
     };
     const onStar = () => {
-      const e = email as any;
+      const e = email;
       if (!selectedId) return;
       toggleStar.mutate({ entityId: selectedId, starred: !e?.isStarred });
     };
@@ -130,7 +150,7 @@ export function EmailDetail() {
     );
   }
 
-  const e = email as any;
+  const e = email;
   const subject = e?.data?.subject ?? "(no subject)";
   const from = e?.data?.from ?? "";
   const date = e?.data?.date ?? e?.updated_at;

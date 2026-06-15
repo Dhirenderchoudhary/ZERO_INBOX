@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Cpu, Inbox, RefreshCw, Search, X } from "lucide-react";
 import { toast } from "sonner";
@@ -20,14 +21,35 @@ const TABS = [
   { key: "urgent", label: "Urgent" },
   { key: "needs_reply", label: "Reply" },
   { key: "fyi", label: "FYI" },
+  { key: "starred", label: "Starred" },
+  { key: "sent", label: "Sent" },
 ];
 
 export function EmailList() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [focusedIdx, setFocusedIdx] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const { selectedId, setSelectedId } = useEmailStore();
+
+  useEffect(() => {
+    setFilter(searchParams.get("p") ?? searchParams.get("f") ?? "all");
+  }, [searchParams]);
+
+  const updateFilter = (nextFilter: string) => {
+    setFilter(nextFilter);
+    setFocusedIdx(0);
+
+    if (nextFilter === "all") {
+      router.replace("/inbox", { scroll: false });
+    } else if (nextFilter === "starred" || nextFilter === "sent") {
+      router.replace(`/inbox?f=${nextFilter}`, { scroll: false });
+    } else {
+      router.replace(`/inbox?p=${nextFilter}`, { scroll: false });
+    }
+  };
 
   const {
     data: emails = [],
@@ -151,7 +173,7 @@ export function EmailList() {
           {TABS.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFilter(tab.key)}
+              onClick={() => updateFilter(tab.key)}
               className={cn(
                 "relative rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
                 filter === tab.key
