@@ -17,4 +17,15 @@ export const corsair = createCorsair({
 });
 
 // Run setup to sync all new corsair_accounts for the added integrations
-setupCorsair(corsair).catch(console.error);
+setupCorsair(corsair, {
+  credentials: {
+    gmail: {
+      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+    googlecalendar: {
+      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+  },
+}).catch(console.error);
