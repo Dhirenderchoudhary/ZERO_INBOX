@@ -74,17 +74,17 @@ export const GET = ApiReference({
             },
           },
         },
-        "/api/webhooks/razorpay": {
+        "/api/webhooks/corsair": {
           post: {
-            summary: "Razorpay Webhook",
+            summary: "Corsair Realtime Webhook",
             description:
-              "Handles incoming subscription and payment events directly from Razorpay.",
+              "Handles incoming push notifications directly from Corsair. Used for realtime email and calendar syncing.",
             requestBody: {
               content: {
                 "application/json": {
                   schema: {
                     type: "object",
-                    description: "Razorpay Event Payload",
+                    description: "Corsair Event Payload (e.g. message.created)",
                   },
                 },
               },
@@ -92,9 +92,6 @@ export const GET = ApiReference({
             responses: {
               "200": {
                 description: "Webhook received and processed successfully",
-              },
-              "400": {
-                description: "Invalid signature",
               },
               "500": {
                 description: "Webhook processing failed",

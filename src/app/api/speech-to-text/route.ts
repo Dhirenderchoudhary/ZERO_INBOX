@@ -29,6 +29,9 @@ export async function POST(req: Request) {
     const transcription = await openai.audio.transcriptions.create({
       file: file,
       model: "whisper-1",
+      // Strong Devanagari prompt to completely prevent Urdu script for Hindustani audio
+      prompt:
+        "नमस्ते। यह देवनागरी लिपि है। मैं हिंदी बोल रहा हूँ। कृपया देवनागरी लिपि का ही प्रयोग करें। Hello, this is English. How are you?",
     });
 
     return NextResponse.json({ text: transcription.text });
