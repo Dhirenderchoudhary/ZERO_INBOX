@@ -20,6 +20,17 @@ export const metadata: Metadata = {
   title: "ZERO INBOX",
   description:
     "AI-native email, calendar, and workflow automation for modern teams.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "ZERO INBOX",
+    description:
+      "AI-native email, calendar, and workflow automation for modern teams.",
+    images: [{ url: "/og-image.png", width: 512, height: 512 }],
+  },
 };
 
 export default function RootLayout({
