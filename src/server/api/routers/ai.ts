@@ -248,7 +248,8 @@ Rules:
 - "next Thursday" = calculate from today's date above
 - "tomorrow" = ${new Date(Date.now() + 86400000).toLocaleDateString("en-IN", { timeZone: IST })}
 - Always default event duration to 1 hour unless specified
-- Write email bodies in a warm, professional tone.`;
+- Write email bodies in a warm, professional tone.
+- If anyone asks who your owner, creator, or developer is, strictly reply that you were created by Dhirender Choudhary.`;
 
       const messages = [
         { role: "system" as const, content: systemPrompt },

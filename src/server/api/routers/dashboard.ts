@@ -41,11 +41,58 @@ export const dashboardRouter = createTRPCRouter({
       .where(sql`${agentMessages.actionsJson} LIKE '%create_event%'`);
     const meetingsAutomated = Number(eventsCreatedResult[0]?.count || 0);
 
+    // 5. Triage Percentages
+    const triageStats = await db
+      .select({
+        priority: emailTriage.priority,
+        count: sql<number>`count(*)`,
+      })
+      .from(emailTriage)
+      .groupBy(emailTriage.priority);
+
+    let urgent = 0;
+    let needs_reply = 0;
+    let fyi = 0;
+    let noise = 0;
+    let totalTriage = 0;
+
+    for (const stat of triageStats) {
+      const c = Number(stat.count);
+      totalTriage += c;
+      if (stat.priority === "urgent") urgent = c;
+      else if (stat.priority === "needs_reply") needs_reply = c;
+      else if (stat.priority === "fyi") fyi = c;
+      else noise += c;
+    }
+
+    const inboxIntelligence = {
+      urgent: totalTriage ? Math.round((urgent / totalTriage) * 100) : 0,
+      needs_reply: totalTriage
+        ? Math.round((needs_reply / totalTriage) * 100)
+        : 0,
+      fyi: totalTriage ? Math.round((fyi / totalTriage) * 100) : 0,
+      noise: totalTriage ? Math.round((noise / totalTriage) * 100) : 0,
+    };
+
+    // 6. Recent Actions
+    const recentActions = await db
+      .select({
+        id: agentMessages.id,
+        content: agentMessages.content,
+        createdAt: agentMessages.createdAt,
+      })
+      .from(agentMessages)
+      .where(eq(agentMessages.role, "assistant"))
+      .orderBy(sql`${agentMessages.createdAt} DESC`)
+      .limit(4);
+
     return {
       priorityThreads,
       replyObligations,
       aiActions,
       meetingsAutomated,
+      inboxIntelligence,
+      recentActions,
     };
   }),
 });

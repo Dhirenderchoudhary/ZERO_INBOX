@@ -47,21 +47,33 @@ export function encodeRawEmail({
 
 export function decodeEmailBody(payload: any): string {
   if (!payload) return "";
-  if (payload.body?.data) {
+
+  const tryDecode = (data: string) => {
     try {
-      const b64 = payload.body.data.replace(/-/g, "+").replace(/_/g, "/");
+      const b64 = data.replace(/-/g, "+").replace(/_/g, "/");
       return decodeURIComponent(escape(atob(b64)));
-    } catch {}
+    } catch {
+      return "";
+    }
+  };
+
+  if (payload.body?.data) {
+    return tryDecode(payload.body.data);
   }
+
+  let htmlBody = "";
   if (payload.parts) {
     for (const part of payload.parts) {
       if (part.mimeType === "text/plain" && part.body?.data) {
-        try {
-          const b64 = part.body.data.replace(/-/g, "+").replace(/_/g, "/");
-          return decodeURIComponent(escape(atob(b64)));
-        } catch {}
+        const decoded = tryDecode(part.body.data);
+        if (decoded) return decoded;
+      }
+      if (part.mimeType === "text/html" && part.body?.data) {
+        htmlBody = tryDecode(part.body.data);
       }
     }
+    if (htmlBody) return htmlBody;
+
     for (const part of payload.parts) {
       const nested = decodeEmailBody(part);
       if (nested) return nested;
