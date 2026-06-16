@@ -15,7 +15,6 @@ export async function POST(req: Request) {
       const { accountId, entityId } = payload;
 
       // Fetch the actual message data
-      // @ts-expect-error - getIntegrationEntity is pseudo-code for the hackathon endpoint
       const message = await (corsair as any).getIntegrationEntity(
         accountId,
         entityId,
