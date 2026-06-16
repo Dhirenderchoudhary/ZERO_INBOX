@@ -153,6 +153,7 @@ export const scheduledEmails = pgTable("scheduled_emails", {
 
 export const agentMessages = pgTable("agent_messages", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   content: text("content").notNull(),
   actionsJson: text("actions_json"),

@@ -38,7 +38,12 @@ export const dashboardRouter = createTRPCRouter({
     const eventsCreatedResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(agentMessages)
-      .where(sql`${agentMessages.actionsJson} LIKE '%create_event%'`);
+      .where(
+        and(
+          sql`${agentMessages.actionsJson} LIKE '%create_event%'`,
+          eq(agentMessages.userId, userId),
+        ),
+      );
     const meetingsAutomated = Number(eventsCreatedResult[0]?.count || 0);
 
     // 5. Triage Percentages
@@ -82,7 +87,12 @@ export const dashboardRouter = createTRPCRouter({
         createdAt: agentMessages.createdAt,
       })
       .from(agentMessages)
-      .where(eq(agentMessages.role, "assistant"))
+      .where(
+        and(
+          eq(agentMessages.role, "assistant"),
+          eq(agentMessages.userId, userId),
+        ),
+      )
       .orderBy(sql`${agentMessages.createdAt} DESC`)
       .limit(4);
 

@@ -123,21 +123,26 @@ export function AgentChat() {
   return (
     <div className="h-full overflow-hidden p-4 sm:p-6 lg:p-8">
       <div className="border-border/70 bg-card mx-auto flex h-full max-w-5xl flex-col overflow-hidden rounded-2xl border shadow-sm">
-        <div className="border-border/70 border-b p-5">
-          <Badge variant="outline" className="mb-3 rounded-full">
-            <Sparkles size={13} /> AI operator
-          </Badge>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="border-border/70 border-b px-5 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight">
-                What should ZERO INBOX do?
-              </h2>
-              <p className="text-muted-foreground mt-1 text-sm">
+              <div className="mb-1 flex items-center gap-2">
+                <Badge variant="outline" className="rounded-full py-0">
+                  <Sparkles size={11} className="mr-1" /> AI operator
+                </Badge>
+                <h2 className="text-lg font-semibold tracking-tight">
+                  What should ZERO INBOX do?
+                </h2>
+              </div>
+              <p className="text-muted-foreground text-xs">
                 Control email and calendar workflows with natural language.
               </p>
             </div>
-            <Badge variant="secondary" className="w-fit rounded-full">
-              OpenAI + Corsair tools
+            <Badge
+              variant="secondary"
+              className="w-fit rounded-full py-0 text-xs"
+            >
+              OpenAI + Corsair
             </Badge>
           </div>
         </div>

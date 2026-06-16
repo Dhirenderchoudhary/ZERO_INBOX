@@ -262,7 +262,7 @@ Rules:
         { role: "user" as const, content: input.message },
       ];
 
-      const response = await openai.chat.completions.create({
+      let response = await openai.chat.completions.create({
         model: "gpt-4o",
         max_tokens: 1000,
         messages,
@@ -309,20 +309,53 @@ Rules:
               },
             },
           },
+          {
+            type: "function",
+            function: {
+              name: "fetch_recent_emails",
+              description:
+                "Fetch the user's most recent cached emails to answer questions about their inbox.",
+              parameters: {
+                type: "object",
+                properties: {
+                  limit: {
+                    type: "number",
+                    description: "Number of emails to fetch (max 10)",
+                  },
+                },
+                required: ["limit"],
+              },
+            },
+          },
         ],
       });
 
-      const choice = response.choices[0];
-      const message = choice.message;
+      let choice = response.choices[0];
+      let message = choice.message;
       let replyText = message.content ?? "I have processed your request.";
       const actionsExecuted: string[] = [];
 
       if (message.tool_calls && message.tool_calls.length > 0) {
+        messages.push(message as any);
+
         for (const toolCall of message.tool_calls) {
+          let toolResult = "Success";
           try {
             const args = JSON.parse(toolCall.function.arguments);
 
-            if (toolCall.function.name === "send_email") {
+            if (toolCall.function.name === "fetch_recent_emails") {
+              const raw = await tenant.gmail.db.messages.list({
+                limit: Math.min(args.limit || 5, 20),
+              });
+              const deduped = dedupeAndSort(raw).slice(0, args.limit || 5);
+              toolResult = deduped
+                .map(
+                  (m) =>
+                    `From: ${m.data?.from}\nSubject: ${m.data?.subject}\nSnippet: ${m.data?.snippet}`,
+                )
+                .join("\n\n");
+              actionsExecuted.push(`Fetched ${deduped.length} recent emails.`);
+            } else if (toolCall.function.name === "send_email") {
               const raw = encodeRawEmail({
                 to: args.to,
                 subject: args.subject,
@@ -332,9 +365,7 @@ Rules:
               actionsExecuted.push(
                 `Sent email to ${args.to} — "${args.subject}"`,
               );
-            }
-
-            if (toolCall.function.name === "create_event") {
+            } else if (toolCall.function.name === "create_event") {
               await tenant.googlecalendar.api.events.create({
                 calendarId: "primary",
                 sendUpdates: args.sendInvites ? "all" : "none",
@@ -353,24 +384,40 @@ Rules:
               );
             }
           } catch (e) {
+            toolResult = `Error: ${(e as Error).message}`;
             actionsExecuted.push(
               `⚠ Failed: ${toolCall.function.name} — ${(e as Error).message}`,
             );
           }
+
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: toolResult,
+          } as any);
         }
 
-        if (!message.content) {
-          replyText = `I have successfully executed the following actions:\n${actionsExecuted.join("\n")}`;
-        }
+        // Call OpenAI again to get the final summary
+        const secondResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          max_tokens: 1000,
+          messages,
+        });
+
+        replyText =
+          secondResponse.choices[0].message.content ??
+          `I have successfully executed the following actions:\n${actionsExecuted.join("\n")}`;
       }
 
       await db.insert(agentMessages).values([
-        { role: "user", content: input.message },
+        { role: "user", content: input.message, userId: ctx.session.user.id },
         {
           role: "assistant",
           content: replyText,
           actionsJson: JSON.stringify(actionsExecuted),
           tokensUsed: response.usage?.total_tokens ?? 0,
+          userId: ctx.session.user.id,
         },
       ]);
 

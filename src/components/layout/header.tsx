@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { toast } from "sonner";
 import {
   Bell,
   ChevronRight,
@@ -58,19 +60,22 @@ export function DashboardHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             <ShieldCheck size={12} /> Secure
           </Badge>
           <ThemeToggle />
-          <Button variant="ghost" size="icon" className="relative rounded-xl">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative rounded-xl"
+            onClick={() => toast.info("No new notifications")}
+          >
             <Bell size={17} />
             <span className="ring-background absolute top-2 right-2 size-2 rounded-full bg-blue-500 ring-2" />
             <span className="sr-only">Notifications</span>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden rounded-xl sm:inline-flex"
-          >
-            <Settings size={17} />
-            <span className="sr-only">Settings</span>
-          </Button>
+          <Link href="/settings" className="hidden sm:inline-flex">
+            <Button variant="ghost" size="icon" className="rounded-xl">
+              <Settings size={17} />
+              <span className="sr-only">Settings</span>
+            </Button>
+          </Link>
           <details className="group relative">
             <summary className="border-border/70 bg-card/70 hover:bg-muted focus-visible:ring-ring focus-visible:ring-offset-background flex list-none items-center gap-2 rounded-full border p-1 pr-2 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2">
               <Avatar size="sm">

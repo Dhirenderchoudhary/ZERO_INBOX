@@ -145,7 +145,7 @@ export const gmailRouter = createTRPCRouter({
 
   refresh: protectedProcedure.mutation(async ({ ctx }) => {
     const tenant = getTenant(ctx.session.user.id);
-    const response = await tenant.gmail.api.messages.list({ maxResults: 20 });
+    const response = await tenant.gmail.api.messages.list({ maxResults: 50 });
     let synced = 0;
     for (const msg of response.messages ?? []) {
       if (msg.id) {

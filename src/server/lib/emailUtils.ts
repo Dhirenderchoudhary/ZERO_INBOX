@@ -36,7 +36,7 @@ export function encodeRawEmail({
     "",
     body.replace(/\n/g, "<br>"),
   ]
-    .filter(Boolean)
+    .filter((line) => line !== null)
     .join("\r\n");
 
   return btoa(unescape(encodeURIComponent(lines)))
