@@ -104,7 +104,7 @@ export function WeekView() {
                 for (let i = 0; i < str.length; i++) {
                   hash = str.charCodeAt(i) + ((hash << 5) - hash);
                 }
-                return COLORS[Math.abs(hash) % COLORS.length];
+                return COLORS[Math.abs(hash) % COLORS.length] || COLORS[0]!;
               };
 
               return (

@@ -12,6 +12,7 @@ import {
   Mic,
   Square,
 } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/trpc/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,6 +117,7 @@ export function AgentChat() {
       submit(q);
       window.history.replaceState({}, "", "/agent");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

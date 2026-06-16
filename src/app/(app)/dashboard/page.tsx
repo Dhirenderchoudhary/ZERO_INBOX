@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import {
-  ArrowUpRight,
   Bot,
   Calendar,
   CalendarCheck,
@@ -30,14 +29,6 @@ import {
 } from "@/components/ui/card";
 
 import { useRouter } from "next/navigation";
-
-// removed static kpis array
-const quickActions = [
-  "Triage inbox",
-  "Draft follow-ups",
-  "Find open slots",
-  "Archive newsletters",
-] as const;
 
 export default function DashboardPage() {
   const router = useRouter();

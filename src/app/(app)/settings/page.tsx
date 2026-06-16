@@ -1,16 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Settings as SettingsIcon,
-  Bell,
-  Bot,
-  Palette,
-  Fingerprint,
-  Shield,
-  Zap,
-  CheckCircle2,
-} from "lucide-react";
+import { Bot, Palette } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -53,7 +44,7 @@ export default function SettingsPage() {
 
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + 0.1);
-    } catch (e) {
+    } catch {
       // Ignore audio errors
     }
   };

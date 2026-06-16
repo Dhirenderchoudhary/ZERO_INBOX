@@ -1,12 +1,4 @@
-import {
-  ShieldCheck,
-  Lock,
-  Key,
-  Activity,
-  Globe,
-  Database,
-  Fingerprint,
-} from "lucide-react";
+import { ShieldCheck, Key, Activity, Globe, Database } from "lucide-react";
 import {
   Card,
   CardContent,

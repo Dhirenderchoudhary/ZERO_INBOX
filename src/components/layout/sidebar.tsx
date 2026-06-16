@@ -16,7 +16,6 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";

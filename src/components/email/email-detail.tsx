@@ -154,6 +154,7 @@ export function EmailDetail() {
       window.removeEventListener("reply", onReply);
       window.removeEventListener("star", onStar);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, email, archive, draftReply, toggleStar]);
 
   if (!selectedId) {

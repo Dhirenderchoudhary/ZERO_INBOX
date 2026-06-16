@@ -86,6 +86,7 @@ function FloatingTechIcon({
       className={`absolute hidden items-center justify-center rounded-2xl border border-black/10 bg-white/40 p-3 shadow-[0_8px_30px_rgb(0,0,0,0.06)] backdrop-blur-xl lg:flex dark:border-white/10 dark:bg-white/10 ${reverse ? "animate-float-reverse" : "animate-float"} ${className}`}
       style={{ animationDelay: delay }}
     >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         className={`size-7 object-contain opacity-90 transition-all duration-300 hover:scale-110 hover:opacity-100 hover:drop-shadow-sm ${imgClassName}`}
@@ -247,6 +248,7 @@ export default function LandingPage() {
             </Badge>
 
             <div className="flex items-center gap-3 pr-4 sm:border-r sm:border-black/10 sm:dark:border-white/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/chaicode-logo.png"
                 alt="ChaiCode Logo"
@@ -263,6 +265,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center gap-3 sm:pl-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/corsair-logo.png"
                 alt="Corsair Logo"
@@ -348,7 +351,7 @@ export default function LandingPage() {
   );
 }
 
-function LandingThemeToggle({ compact = false }: { compact?: boolean }) {
+function LandingThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
