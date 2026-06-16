@@ -304,20 +304,19 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
-            <Button
-              variant="outline"
-              size="lg"
-              className="group h-12 rounded-xl border-black/20 bg-white/80 px-6 text-neutral-950 shadow-sm transition-all hover:bg-neutral-950 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white dark:hover:text-neutral-950"
-              asChild
+            <a
+              href="https://github.com/Dhirenderchoudhary/ZERO_INBOX"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <a
-                href="https://github.com/Dhirenderchoudhary/ZERO_INBOX"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Button
+                variant="outline"
+                size="lg"
+                className="group h-12 rounded-xl border-black/20 bg-white/80 px-6 text-neutral-950 shadow-sm transition-all hover:bg-neutral-950 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white dark:hover:text-neutral-950"
               >
                 <Star size={16} className="fill-current" /> Star on GitHub
-              </a>
-            </Button>
+              </Button>
+            </a>
             <Button
               size="lg"
               onClick={handleSignIn}
