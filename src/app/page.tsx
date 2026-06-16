@@ -68,7 +68,45 @@ const metrics = [
   { label: "AI actions", value: "128" },
 ];
 
+function FloatingTechIcon({
+  src,
+  className,
+  imgClassName = "",
+  reverse = false,
+  delay = "0s",
+}: {
+  src: string;
+  className: string;
+  imgClassName?: string;
+  reverse?: boolean;
+  delay?: string;
+}) {
+  return (
+    <div
+      className={`absolute hidden items-center justify-center rounded-2xl border border-black/10 bg-white/40 p-3 shadow-[0_8px_30px_rgb(0,0,0,0.06)] backdrop-blur-xl lg:flex dark:border-white/10 dark:bg-white/10 ${reverse ? "animate-float-reverse" : "animate-float"} ${className}`}
+      style={{ animationDelay: delay }}
+    >
+      <img
+        src={src}
+        className={`size-7 object-contain opacity-90 transition-all duration-300 hover:scale-110 hover:opacity-100 hover:drop-shadow-sm ${imgClassName}`}
+        alt="Tech icon"
+      />
+    </div>
+  );
+}
+
 export default function LandingPage() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleSignIn = () => {
     signIn.social({ provider: "google", callbackURL: "/dashboard" });
   };
@@ -81,92 +119,178 @@ export default function LandingPage() {
       <DashedArc className="top-[8rem] right-[-10rem] -rotate-6" />
       <DashedArc className="top-[33rem] right-[4rem] rotate-6 opacity-70" />
 
-      <header className="relative z-20 mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl border border-black/10 bg-white/82 shadow-[0_18px_70px_rgba(15,15,15,0.08)] backdrop-blur-xl transition-colors dark:border-white/10 dark:bg-white/8 dark:shadow-[0_18px_70px_rgba(0,0,0,0.45)]">
-          <span className="absolute top-1/2 -left-2 size-4 -translate-y-1/2 text-indigo-400 dark:text-white/40">
-            +
-          </span>
-          <span className="absolute top-1/2 -right-2 size-4 -translate-y-1/2 text-indigo-400 dark:text-white/40">
-            +
-          </span>
-          <div className="flex h-16 items-center justify-between gap-4 px-5">
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-2xl bg-neutral-950 text-white shadow-sm dark:bg-white dark:text-neutral-950">
-                <Zap size={17} strokeWidth={2.5} />
-              </div>
-              <div>
-                <span className="text-sm font-semibold tracking-tight">
-                  ZERO INBOX
-                </span>
-                <p className="hidden text-[11px] font-medium text-neutral-500 sm:block dark:text-neutral-400">
-                  AI command center
-                </p>
-              </div>
+      <header
+        className={`fixed top-0 right-0 left-0 z-50 mx-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          isScrolled
+            ? "max-w-5xl px-4 pt-4 sm:px-6 lg:px-8"
+            : "max-w-7xl px-4 pt-6 sm:px-6 lg:px-8"
+        }`}
+      >
+        <div
+          className={`relative flex items-center justify-between gap-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isScrolled
+              ? "h-14 rounded-full border border-white/20 bg-white/20 px-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/5 dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)]"
+              : "h-16 rounded-none border-transparent bg-transparent px-2"
+          }`}
+        >
+          <div className="flex items-center gap-3 pl-1">
+            <div
+              className={`flex items-center justify-center transition-all duration-500 ${isScrolled ? "size-8 rounded-full bg-neutral-950 text-white shadow-sm dark:bg-white dark:text-neutral-950" : "size-9 rounded-2xl bg-neutral-950 text-white dark:bg-white dark:text-neutral-950"}`}
+            >
+              <Zap size={15} strokeWidth={2.5} />
             </div>
-
-            <nav className="hidden items-center gap-3 text-sm font-medium text-neutral-500 md:flex dark:text-neutral-400">
-              <button
-                onClick={() => (window.location.href = "/reference")}
-                className="rounded-xl px-3 py-2 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-white/10 dark:hover:text-white"
+            <div className="flex flex-col -space-y-0.5">
+              <span
+                className={`font-bold tracking-wide transition-colors duration-500 ${isScrolled ? "text-[13px] text-neutral-950 dark:text-white" : "text-sm text-neutral-950 dark:text-white"}`}
               >
-                Docs
-              </button>
-              <button className="rounded-xl px-3 py-2 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-white/10 dark:hover:text-white">
-                Demo
-              </button>
+                ZERO INBOX
+              </span>
+              <p
+                className={`hidden font-medium transition-colors duration-500 sm:block ${isScrolled ? "text-[10px] text-neutral-500 dark:text-neutral-400" : "text-[11px] text-neutral-500 dark:text-neutral-400"}`}
+              >
+                AI command center
+              </p>
+            </div>
+          </div>
+
+          <nav className="hidden items-center gap-6 text-[13px] font-medium text-neutral-500 md:flex dark:text-neutral-400">
+            <a
+              href="/reference"
+              className="transition-colors hover:text-neutral-950 dark:hover:text-white"
+            >
+              Docs
+            </a>
+            <a
+              href="#demo"
+              className="transition-colors hover:text-neutral-950 dark:hover:text-white"
+            >
+              Demo
+            </a>
+            <a
+              href="/pricing"
+              className="transition-colors hover:text-neutral-950 dark:hover:text-white"
+            >
+              Pricing
+            </a>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden md:block">
               <LandingThemeToggle />
-              <Button
-                onClick={handleSignIn}
-                className="rounded-xl bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
-              >
-                Go to app <ArrowRight size={15} />
-              </Button>
-            </nav>
-
-            <div className="flex items-center gap-2 md:hidden">
-              <LandingThemeToggle compact />
-              <Button
-                onClick={handleSignIn}
-                className="rounded-xl bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
-              >
-                Go <ArrowRight size={15} />
-              </Button>
             </div>
+            <Button
+              onClick={handleSignIn}
+              className={`h-9 rounded-full px-4 text-[13px] font-semibold transition-colors duration-500 ${isScrolled ? "bg-neutral-950 text-white shadow-sm hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200" : "bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"}`}
+            >
+              Go to app <ArrowRight size={14} className="ml-1" />
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10">
-        <section className="mx-auto flex max-w-7xl flex-col items-center px-4 pt-16 pb-16 text-center sm:px-6 sm:pt-20 lg:px-8">
-          <div className="mb-7 inline-flex items-center gap-3 rounded-2xl border border-black/10 bg-white/86 px-4 py-3 text-left shadow-[0_10px_35px_rgba(15,15,15,0.10)] backdrop-blur transition-colors dark:border-white/10 dark:bg-white/8 dark:shadow-[0_10px_35px_rgba(0,0,0,0.35)]">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-neutral-950 text-xl font-bold text-white dark:bg-white dark:text-neutral-950">
-              C
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">
-                Backed by
-              </p>
-              <p className="text-lg leading-none font-semibold">ChaiCode</p>
-            </div>
+      <main className="relative z-10 min-h-[90vh]">
+        <FloatingTechIcon
+          src="https://cdn.simpleicons.org/gmail"
+          className="top-[25%] left-[8%]"
+          delay="0s"
+        />
+        <FloatingTechIcon
+          src="https://cdn.simpleicons.org/github"
+          imgClassName="dark:invert"
+          className="top-[45%] left-[3%]"
+          reverse
+          delay="1.5s"
+        />
+        <FloatingTechIcon
+          src="https://cdn.simpleicons.org/typescript"
+          className="bottom-[15%] left-[10%]"
+          delay="2.5s"
+        />
+        <FloatingTechIcon
+          src="https://cdn.simpleicons.org/react"
+          className="top-[10%] left-[20%]"
+          reverse
+          delay="1s"
+        />
+
+        <FloatingTechIcon
+          src="https://cdn.simpleicons.org/tailwindcss"
+          className="top-[22%] right-[10%]"
+          reverse
+          delay="0.5s"
+        />
+        <FloatingTechIcon
+          src="/corsair-logo.png"
+          className="top-[50%] right-[4%]"
+          delay="2s"
+        />
+        <FloatingTechIcon
+          src="/chaicode-logo.png"
+          className="right-[12%] bottom-[12%]"
+          reverse
+          delay="3s"
+        />
+        <FloatingTechIcon
+          src="https://cdn.simpleicons.org/googlecalendar"
+          className="top-[12%] right-[25%]"
+          delay="0.8s"
+        />
+
+        <section className="relative z-20 mx-auto flex max-w-7xl flex-col items-center px-4 pt-32 pb-16 text-center sm:px-6 sm:pt-40 lg:px-8">
+          <div className="relative mt-4 mb-7 flex flex-col items-center gap-4 rounded-[2rem] border border-white/20 bg-white/20 p-5 text-left shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl transition-all hover:border-white/30 hover:bg-white/30 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] sm:flex-row sm:items-center dark:border-white/10 dark:bg-white/5 dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)] dark:hover:bg-white/10">
             <Badge
               variant="outline"
-              className="ml-1 hidden rounded-full border-emerald-500/30 bg-emerald-500/10 text-emerald-700 sm:inline-flex dark:text-emerald-300"
+              className="absolute -top-3.5 left-1/2 z-10 hidden -translate-x-1/2 rounded-full border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-emerald-700 backdrop-blur-md sm:inline-flex dark:text-emerald-300"
             >
-              <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-              Live demo
+              <span className="mr-1.5 size-1.5 animate-pulse rounded-full bg-emerald-500" />
+              Live
             </Badge>
+
+            <div className="flex items-center gap-3 pr-4 sm:border-r sm:border-black/10 sm:dark:border-white/10">
+              <img
+                src="/chaicode-logo.png"
+                alt="ChaiCode Logo"
+                className="size-10 object-contain drop-shadow-sm"
+              />
+              <div>
+                <p className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">
+                  Backed by
+                </p>
+                <p className="text-lg leading-none font-semibold text-neutral-950 dark:text-white">
+                  ChaiCode
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 sm:pl-2">
+              <img
+                src="/corsair-logo.png"
+                alt="Corsair Logo"
+                className="size-10 object-contain drop-shadow-sm"
+              />
+              <div>
+                <p className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">
+                  Powered by
+                </p>
+                <p className="text-lg leading-none font-semibold text-neutral-950 dark:text-white">
+                  Corsair
+                </p>
+              </div>
+            </div>
           </div>
 
-          <h1 className="max-w-6xl text-[clamp(3.25rem,9vw,8.75rem)] leading-[0.9] font-semibold tracking-[-0.075em] text-balance">
-            <span className="font-serif font-medium text-neutral-700 italic dark:text-neutral-300">
+          <h1 className="max-w-6xl text-[clamp(4rem,10vw,8.5rem)] leading-[0.95] text-balance">
+            <span className="block font-serif font-medium tracking-tight text-[#383838] italic dark:text-neutral-300">
               Command every
             </span>
-            <br />
-            <span className="font-serif font-medium text-neutral-700 italic dark:text-neutral-300">
+            <span className="font-serif font-medium tracking-tight text-[#383838] italic dark:text-neutral-300">
               workflow
             </span>{" "}
-            <span className="block text-neutral-950 sm:inline dark:text-white">
-              from one inbox.
+            <span className="font-extrabold tracking-[-0.05em] text-neutral-950 dark:text-white">
+              from one
+            </span>
+            <span className="block font-extrabold tracking-[-0.05em] text-neutral-950 dark:text-white">
+              inbox
             </span>
           </h1>
 
@@ -197,6 +321,28 @@ export default function LandingPage() {
 
           <DashboardShowcase />
         </section>
+
+        <footer className="mt-20 border-t border-black/10 dark:border-white/10">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 sm:px-6 md:flex-row lg:px-8">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              © {new Date().getFullYear()} Zero Inbox. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6 text-sm text-neutral-500 dark:text-neutral-400">
+              <a
+                href="/privacy"
+                className="transition-colors hover:text-neutral-900 dark:hover:text-white"
+              >
+                Privacy Policy
+              </a>
+              <a
+                href="/terms"
+                className="transition-colors hover:text-neutral-900 dark:hover:text-white"
+              >
+                Terms of Service
+              </a>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
@@ -212,31 +358,22 @@ function LandingThemeToggle({ compact = false }: { compact?: boolean }) {
 
   const isDark = mounted && resolvedTheme === "dark";
 
-  if (compact) {
-    return (
-      <button
-        onClick={() => setTheme(isDark ? "light" : "dark")}
-        className="flex size-10 items-center justify-center rounded-xl border border-black/10 bg-white/80 text-neutral-950 shadow-sm transition-colors hover:bg-neutral-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
-      >
-        {isDark ? <Moon size={16} /> : <Sun size={16} />}
-        <span className="sr-only">Toggle black and white theme</span>
-      </button>
-    );
-  }
-
   return (
-    <div className="flex rounded-2xl border border-black/10 bg-neutral-100 p-1 text-xs font-semibold shadow-inner dark:border-white/10 dark:bg-black/40">
+    <div className="relative flex items-center rounded-full border border-white/5 bg-neutral-900 p-1.5 text-[13px] font-medium text-white shadow-inner dark:bg-black/50">
+      <div
+        className={`absolute inset-y-1.5 left-1.5 w-[calc(50%-6px)] rounded-full bg-white transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isDark ? "translate-x-full" : "translate-x-0"}`}
+      />
       <button
         onClick={() => setTheme("light")}
-        className={`flex items-center gap-1 rounded-xl px-3 py-2 transition-all ${!isDark ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"}`}
+        className={`relative z-10 flex w-[72px] items-center justify-center gap-1.5 rounded-full py-1 transition-colors duration-300 ${!isDark ? "font-semibold text-neutral-900" : "text-neutral-400 hover:text-white"}`}
       >
-        <Sun size={13} /> White
+        <Sun size={14} /> White
       </button>
       <button
         onClick={() => setTheme("dark")}
-        className={`flex items-center gap-1 rounded-xl px-3 py-2 transition-all ${isDark ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-500 hover:text-neutral-950"}`}
+        className={`relative z-10 flex w-[72px] items-center justify-center gap-1.5 rounded-full py-1 transition-colors duration-300 ${isDark ? "font-semibold text-neutral-900" : "text-neutral-400 hover:text-white"}`}
       >
-        <Moon size={13} /> Black
+        <Moon size={14} /> Black
       </button>
     </div>
   );

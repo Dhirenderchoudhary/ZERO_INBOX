@@ -1,7 +1,7 @@
 import "@/styles/globals.css";
 import { type Metadata } from "next";
 import { TRPCReactProvider } from "@/trpc/react";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Newsreader } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 
@@ -9,6 +9,11 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+});
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-serif",
 });
 
 export const metadata: Metadata = {
@@ -23,13 +28,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(inter.variable, jetbrainsMono.variable)}
+      className={cn(
+        inter.variable,
+        jetbrainsMono.variable,
+        newsreader.variable,
+      )}
       suppressHydrationWarning
     >
       <body className="font-sans">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
