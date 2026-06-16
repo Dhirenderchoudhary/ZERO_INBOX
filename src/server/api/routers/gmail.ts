@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { getTenant } from "../../lib/tenant";
-import { encodeRawEmail } from "../../lib/emailUtils";
+import { encodeRawEmail, parseRawGoogleMessage } from "../../lib/emailUtils";
 import { dedupeAndSort } from "../../lib/dedup";
 import { db } from "../../db";
-import { emailTriage, scheduledEmails } from "../../db/schema";
-import { inArray } from "drizzle-orm";
+import { emailTriage, scheduledEmails, cachedEmails } from "../../db/schema";
+import { inArray, eq } from "drizzle-orm";
 
 function enrichWithTriage(messages: any[], triageRows: any[]) {
   const map = new Map(triageRows.map((r) => [r.entityId, r]));
@@ -90,21 +90,53 @@ export const gmailRouter = createTRPCRouter({
   getOne: protectedProcedure
     .input(z.object({ entityId: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
+      // 1. Check custom Zero Inbox cache
+      const customCache = await db.query.cachedEmails.findFirst({
+        where: eq(cachedEmails.entityId, input.entityId),
+      });
+      if (customCache?.payload) {
+        return { data: customCache.payload, payload: customCache.payload };
+      }
+
       const tenant = getTenant(ctx.session.user.id);
       let cached: any = null;
 
       try {
         cached = await tenant.gmail.db.messages.findByEntityId(input.entityId);
         if (cached?.data?.body || cached?.data?.payload || cached?.payload) {
+          await db
+            .insert(cachedEmails)
+            .values({
+              userId: ctx.session.user.id,
+              entityId: input.entityId,
+              payload: cached.data || cached.payload,
+            })
+            .onConflictDoNothing();
           return cached;
         }
-      } catch {}
+      } catch (error) {
+        console.warn(
+          `Cache miss or db error for email ${input.entityId}:`,
+          error,
+        );
+      }
 
       try {
-        return await tenant.gmail.api.messages.get({
+        const result = await tenant.gmail.api.messages.get({
           id: input.entityId,
           format: "full",
         });
+        if (result) {
+          await db
+            .insert(cachedEmails)
+            .values({
+              userId: ctx.session.user.id,
+              entityId: input.entityId,
+              payload: result,
+            })
+            .onConflictDoNothing();
+        }
+        return { data: result, payload: result };
       } catch (error) {
         if (cached) return cached;
         throw error;
@@ -113,8 +145,27 @@ export const gmailRouter = createTRPCRouter({
 
   refresh: protectedProcedure.mutation(async ({ ctx }) => {
     const tenant = getTenant(ctx.session.user.id);
-    const result = await tenant.gmail.api.threads.list({ maxResults: 500 });
-    return { synced: result.threads?.length ?? 0 };
+    const response = await tenant.gmail.api.messages.list({ maxResults: 20 });
+    let synced = 0;
+    for (const msg of response.messages ?? []) {
+      if (msg.id) {
+        try {
+          const fullMsg = await tenant.gmail.api.messages.get({
+            id: msg.id,
+            format: "full",
+          });
+          const parsed = parseRawGoogleMessage(fullMsg);
+          console.log(
+            `[REFRESH] Parsed msg ${msg.id}: from=${parsed.from}, subject=${parsed.subject}`,
+          );
+          await tenant.gmail.db.messages.upsertByEntityId(msg.id, parsed);
+          synced++;
+        } catch {
+          console.error("Failed to sync message during refresh", msg.id);
+        }
+      }
+    }
+    return { synced };
   }),
 
   send: protectedProcedure

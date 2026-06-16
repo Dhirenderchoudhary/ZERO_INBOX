@@ -52,6 +52,32 @@ export function EmailDetail() {
     { enabled: !!selectedId },
   );
 
+  const e = email;
+  const headers = e?.data?.payload?.headers || e?.payload?.headers || [];
+  const getHeader = (name: string) =>
+    headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())
+      ?.value;
+
+  const subject =
+    e?.data?.subject ?? e?.subject ?? getHeader("subject") ?? "(no subject)";
+  const from = e?.data?.from ?? e?.from ?? getHeader("from") ?? "";
+  const dateStr =
+    e?.data?.date ??
+    e?.updated_at ??
+    getHeader("date") ??
+    new Date().toISOString();
+
+  // Try to decode body if missing
+  let body = e?.data?.text ?? e?.data?.html;
+  if (!body && e?.data?.payload) {
+    body = decodeEmailBody(e.data.payload);
+  }
+  if (!body) body = "No content";
+
+  const senderEmail = parseSenderEmail(from);
+  const senderName = parseSenderName(from);
+  const date = new Date(dateStr);
+
   const markRead = api.gmail.markRead.useMutation();
   const archive = api.gmail.archive.useMutation({
     onSuccess: () => {
@@ -110,9 +136,9 @@ export function EmailDetail() {
       const e = email;
       if (!e) return;
       draftReply.mutate({
-        subject: e.data?.subject ?? "",
-        from: e.data?.from ?? "",
-        body: decodeEmailBody(e.payload) || e.data?.body || "",
+        subject,
+        from,
+        body,
       });
     };
     const onStar = () => {
@@ -149,15 +175,6 @@ export function EmailDetail() {
       </section>
     );
   }
-
-  const e = email;
-  const subject = e?.data?.subject ?? "(no subject)";
-  const from = e?.data?.from ?? "";
-  const date = e?.data?.date ?? e?.updated_at;
-  const body =
-    decodeEmailBody(e?.payload) || e?.data?.body || e?.data?.snippet || "";
-  const senderEmail = parseSenderEmail(from);
-  const senderName = parseSenderName(from);
 
   return (
     <motion.section

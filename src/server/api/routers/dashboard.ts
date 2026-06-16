@@ -1,0 +1,51 @@
+import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { db } from "../../db";
+import { emailTriage, agentMessages, usage } from "../../db/schema";
+import { eq, and, sql } from "drizzle-orm";
+
+export const dashboardRouter = createTRPCRouter({
+  getStats: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+
+    // 1. Priority threads (urgent & unread)
+    const priorityThreadsResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(emailTriage)
+      .where(
+        and(eq(emailTriage.priority, "urgent"), eq(emailTriage.isRead, false)),
+      );
+    const priorityThreads = Number(priorityThreadsResult[0]?.count || 0);
+
+    // 2. Reply obligations (needs_reply & unread)
+    const replyObligationsResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(emailTriage)
+      .where(
+        and(
+          eq(emailTriage.priority, "needs_reply"),
+          eq(emailTriage.isRead, false),
+        ),
+      );
+    const replyObligations = Number(replyObligationsResult[0]?.count || 0);
+
+    // 3. AI Usage (messages used)
+    const userUsage = await db.query.usage.findFirst({
+      where: eq(usage.userId, userId),
+    });
+    const aiActions = userUsage?.messagesUsed || 0;
+
+    // 4. Meetings automated
+    const eventsCreatedResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(agentMessages)
+      .where(sql`${agentMessages.actionsJson} LIKE '%create_event%'`);
+    const meetingsAutomated = Number(eventsCreatedResult[0]?.count || 0);
+
+    return {
+      priorityThreads,
+      replyObligations,
+      aiActions,
+      meetingsAutomated,
+    };
+  }),
+});

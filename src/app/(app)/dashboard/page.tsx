@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { api } from "@/trpc/react";
 import { InboxIntelligence } from "@/components/dashboard/inbox-intelligence";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { RecentActions } from "@/components/dashboard/recent-actions";
@@ -24,37 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const kpis = [
-  {
-    label: "Priority threads",
-    value: "12",
-    trend: "-38% noise",
-    icon: Inbox,
-    tone: "text-blue-500",
-  },
-  {
-    label: "Reply obligations",
-    value: "4",
-    trend: "2 due today",
-    icon: Clock3,
-    tone: "text-amber-500",
-  },
-  {
-    label: "Meetings automated",
-    value: "9",
-    trend: "+24% this week",
-    icon: CalendarCheck,
-    tone: "text-emerald-500",
-  },
-  {
-    label: "AI actions",
-    value: "128",
-    trend: "94% accepted",
-    icon: Bot,
-    tone: "text-violet-500",
-  },
-] as const;
-
+// removed static kpis array
 const quickActions = [
   "Triage inbox",
   "Draft follow-ups",
@@ -77,6 +48,39 @@ export default function DashboardPage() {
     window.addEventListener("hashchange", scrollToHash);
     return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
+
+  const { data: stats } = api.dashboard.getStats.useQuery();
+
+  const kpis = [
+    {
+      label: "Priority threads",
+      value: stats?.priorityThreads?.toString() ?? "-",
+      trend: "urgent inbox items",
+      icon: Inbox,
+      tone: "text-blue-500",
+    },
+    {
+      label: "Reply obligations",
+      value: stats?.replyObligations?.toString() ?? "-",
+      trend: "needs reply",
+      icon: Clock3,
+      tone: "text-amber-500",
+    },
+    {
+      label: "Meetings automated",
+      value: stats?.meetingsAutomated?.toString() ?? "-",
+      trend: "total scheduled",
+      icon: CalendarCheck,
+      tone: "text-emerald-500",
+    },
+    {
+      label: "AI actions",
+      value: stats?.aiActions?.toString() ?? "-",
+      trend: "messages used",
+      icon: Bot,
+      tone: "text-violet-500",
+    },
+  ] as const;
 
   return (
     <div className="h-full overflow-y-auto p-4 sm:p-6 lg:p-8">

@@ -166,3 +166,37 @@ export const emailNotes = pgTable("email_notes", {
   note: text("note").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ─── Zero Inbox Additions ────────────────────────────────────────────────
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  razorpaySubscriptionId: text("razorpay_subscription_id").unique(),
+  planId: text("plan_id").notNull(),
+  status: text("status").notNull().default("active"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const usage = pgTable("usage", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").unique().notNull(),
+  messagesUsed: integer("messages_used").notNull().default(0),
+  resetDate: timestamp("reset_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const cachedEmails = pgTable("cached_emails", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  entityId: text("entity_id").unique().notNull(),
+  subject: text("subject"),
+  snippet: text("snippet"),
+  from: text("from_address"),
+  date: timestamp("date"),
+  payload: jsonb("payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

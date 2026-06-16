@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 export interface EmailParams {
   to: string;
   subject: string;
@@ -27,10 +29,12 @@ export function encodeRawEmail({
     replyTo ? `Reply-To: ${replyTo}` : null,
     `Subject: ${encodeSubject(subject)}`,
     "MIME-Version: 1.0",
-    "Content-Type: text/plain; charset=UTF-8",
+    `Message-ID: <${crypto.randomUUID()}@zeroinbox.local>`,
+    `Date: ${new Date().toUTCString()}`,
+    "Content-Type: text/html; charset=UTF-8",
     "Content-Transfer-Encoding: 7bit",
     "",
-    body,
+    body.replace(/\n/g, "<br>"),
   ]
     .filter(Boolean)
     .join("\r\n");
@@ -76,4 +80,23 @@ export function parseSenderEmail(from: string | undefined): string {
   if (!from) return "";
   const match = /<(.+)>/.exec(from);
   return match ? match[1]! : from;
+}
+
+export function parseRawGoogleMessage(fullMsg: any) {
+  const headers = fullMsg.payload?.headers || [];
+  const getHeader = (name: string) =>
+    headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())
+      ?.value;
+
+  const text = decodeEmailBody(fullMsg.payload);
+
+  return {
+    ...fullMsg,
+    from: getHeader("from") || "",
+    subject: getHeader("subject") || "(no subject)",
+    date: getHeader("date") || fullMsg.internalDate || new Date().toISOString(),
+    text,
+    snippet: fullMsg.snippet || "",
+    labelIds: fullMsg.labelIds || [],
+  };
 }

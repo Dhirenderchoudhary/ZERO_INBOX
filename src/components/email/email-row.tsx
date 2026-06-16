@@ -36,10 +36,20 @@ export function EmailRow({
   onClick,
 }: EmailRowProps) {
   const isUnread = !email?.isRead;
+  const headers =
+    email?.data?.payload?.headers || email?.payload?.headers || [];
+  const getHeader = (name: string) =>
+    headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())
+      ?.value;
+
   const sender = parseSenderName(
-    email?.data?.from ?? email?.fromAddress ?? email?.from,
+    email?.data?.from ?? email?.fromAddress ?? email?.from ?? getHeader("from"),
   );
-  const subject = email?.data?.subject ?? email?.subject ?? "(no subject)";
+  const subject =
+    email?.data?.subject ??
+    email?.subject ??
+    getHeader("subject") ??
+    "(no subject)";
   const snippet = email?.data?.snippet ?? email?.snippet ?? "";
 
   return (

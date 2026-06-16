@@ -105,7 +105,10 @@ export default function LandingPage() {
             </div>
 
             <nav className="hidden items-center gap-3 text-sm font-medium text-neutral-500 md:flex dark:text-neutral-400">
-              <button className="rounded-xl px-3 py-2 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-white/10 dark:hover:text-white">
+              <button
+                onClick={() => (window.location.href = "/reference")}
+                className="rounded-xl px-3 py-2 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-white/10 dark:hover:text-white"
+              >
                 Docs
               </button>
               <button className="rounded-xl px-3 py-2 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-white/10 dark:hover:text-white">

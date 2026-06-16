@@ -2,7 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bot, CheckCircle2, Loader2, Send, Sparkles, User } from "lucide-react";
+import {
+  Bot,
+  CheckCircle2,
+  Loader2,
+  Send,
+  Sparkles,
+  User,
+  Mic,
+  Square,
+} from "lucide-react";
 import { api } from "@/trpc/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +30,55 @@ export function AgentChat() {
   >([]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const formData = new FormData();
+        formData.append("file", audioBlob, "audio.webm");
+
+        try {
+          const res = await fetch("/api/speech-to-text", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.text) {
+            setInput((prev) => (prev + " " + data.text).trim().slice(0, 500));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (e) {
+      console.error("Microphone access denied", e);
+    }
+  };
 
   const chat = api.ai.agentChat.useMutation({
     onSuccess: (data) => {
@@ -66,7 +124,7 @@ export function AgentChat() {
               </p>
             </div>
             <Badge variant="secondary" className="w-fit rounded-full">
-              Mistral + Corsair tools
+              OpenAI + Corsair tools
             </Badge>
           </div>
         </div>
@@ -167,20 +225,40 @@ export function AgentChat() {
         </div>
 
         <div className="border-border/70 bg-muted/30 border-t p-4 sm:p-5">
+          <div className="mb-2 flex justify-end px-2">
+            <span
+              className={`text-xs ${input.length >= 500 ? "text-destructive font-medium" : "text-muted-foreground"}`}
+            >
+              {input.length} / 500
+            </span>
+          </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              submit();
+              if (input.length <= 500) submit();
             }}
             className="border-border/70 bg-background focus-within:ring-ring/40 flex items-end gap-3 rounded-2xl border p-2 shadow-sm focus-within:ring-2"
           >
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value.length <= 500) {
+                  setInput(e.target.value);
+                }
+              }}
               placeholder="Tell the agent what outcome you want..."
               className="placeholder:text-muted-foreground max-h-32 min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none"
               rows={1}
             />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={`rounded-xl ${isRecording ? "text-destructive animate-pulse" : "text-muted-foreground"}`}
+              onClick={toggleRecording}
+            >
+              {isRecording ? <Square size={16} /> : <Mic size={16} />}
+            </Button>
             <Button
               type="submit"
               disabled={!input.trim() || chat.isPending}

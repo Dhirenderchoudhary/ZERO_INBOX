@@ -2,15 +2,34 @@
 // @ts-nocheck
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { Mistral } from "@mistralai/mistralai";
+import OpenAI from "openai";
+import { TRPCError } from "@trpc/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 import { db } from "../../db";
-import { emailTriage, agentMessages } from "../../db/schema";
+import {
+  emailTriage,
+  agentMessages,
+  subscriptions,
+  usage,
+} from "../../db/schema";
 import { getTenant } from "../../lib/tenant";
 import { encodeRawEmail } from "../../lib/emailUtils";
 import { dedupeAndSort } from "../../lib/dedup";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
-const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+let ratelimit: Ratelimit | null = null;
+if (
+  process.env.UPSTASH_REDIS_REST_URL &&
+  process.env.UPSTASH_REDIS_REST_TOKEN
+) {
+  ratelimit = new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+  });
+}
 
 export const aiRouter = createTRPCRouter({
   triageOne: protectedProcedure
@@ -23,9 +42,9 @@ export const aiRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const msg = await mistral.chat.complete({
-        model: "mistral-small-latest",
-        maxTokens: 15,
+      const msg = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 15,
         messages: [
           {
             role: "system",
@@ -86,9 +105,9 @@ Respond with ONLY the category word. Nothing else.`,
     for (const m of messages) {
       if (triaged.has(m.entity_id)) continue;
       try {
-        const msg = await mistral.chat.complete({
-          model: "mistral-small-latest",
-          maxTokens: 15,
+        const msg = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          max_tokens: 15,
           messages: [
             {
               role: "system",
@@ -116,7 +135,9 @@ Respond with ONLY the category word. Nothing else.`,
           });
         count++;
         await new Promise((r) => setTimeout(r, 120));
-      } catch {}
+      } catch (error) {
+        console.error(`Failed to triage email ${m.entity_id}:`, error);
+      }
     }
     return { triaged: count };
   }),
@@ -126,9 +147,9 @@ Respond with ONLY the category word. Nothing else.`,
       z.object({ subject: z.string(), body: z.string(), from: z.string() }),
     )
     .mutation(async ({ input, ctx }) => {
-      const msg = await mistral.chat.complete({
-        model: "mistral-small-latest",
-        maxTokens: 120,
+      const msg = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 120,
         messages: [
           {
             role: "system",
@@ -150,9 +171,9 @@ Respond with ONLY the category word. Nothing else.`,
       z.object({ subject: z.string(), body: z.string(), from: z.string() }),
     )
     .mutation(async ({ input, ctx }) => {
-      const msg = await mistral.chat.complete({
-        model: "mistral-small-latest",
-        maxTokens: 300,
+      const msg = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 300,
         messages: [
           {
             role: "system",
@@ -184,44 +205,50 @@ Respond with ONLY the category word. Nothing else.`,
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (ratelimit) {
+        const { success } = await ratelimit.limit(ctx.session.user.id);
+        if (!success) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "Rate limit exceeded. Please try again later.",
+          });
+        }
+      }
+
+      const userUsageArray = await db
+        .select()
+        .from(usage)
+        .where(eq(usage.userId, ctx.session.user.id));
+      const userUsage = userUsageArray[0];
+
+      const userSubArray = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.userId, ctx.session.user.id));
+      const userSub = userSubArray[0];
+
+      const maxMessages = userSub?.status === "active" ? 500 : 20;
+
+      if (userUsage && userUsage.messagesUsed >= maxMessages) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Message budget exceeded. Please upgrade your plan.",
+        });
+      }
+
       const tenant = getTenant(ctx.session.user.id);
       const now = new Date();
       const IST = "Asia/Kolkata";
 
       const systemPrompt = `You are FlowMail Agent — an AI that controls the user's Gmail and Google Calendar.
-
-When asked to perform actions, respond ONLY with this exact JSON format:
-{
-  "thoughts": "brief reasoning",
-  "actions": [
-    {
-      "type": "send_email",
-      "to": "recipient@example.com",
-      "subject": "Subject line",
-      "body": "Email body text"
-    },
-    {
-      "type": "create_event",
-      "summary": "Event title",
-      "description": "Optional description",
-      "startTime": "2026-06-14T09:00:00+05:30",
-      "endTime": "2026-06-14T10:00:00+05:30",
-      "attendees": ["attendee@example.com"],
-      "sendInvites": true
-    }
-  ],
-  "reply": "Natural language reply confirming what you did or asking for clarification"
-}
-
+You have access to native tools to send emails and create calendar events.
 Rules:
 - Current date/time: ${now.toISOString()} (${now.toLocaleDateString("en-IN", { weekday: "long", timeZone: IST })})
 - Timezone: Asia/Kolkata (IST, UTC+5:30). Use +05:30 offset in all ISO times
 - "next Thursday" = calculate from today's date above
 - "tomorrow" = ${new Date(Date.now() + 86400000).toLocaleDateString("en-IN", { timeZone: IST })}
 - Always default event duration to 1 hour unless specified
-- If no actions needed (answering a question), set actions to []
-- Write email bodies in a warm, professional tone
-- Always confirm actions clearly in "reply"`;
+- Write email bodies in a warm, professional tone.`;
 
       const messages = [
         { role: "system" as const, content: systemPrompt },
@@ -232,59 +259,105 @@ Rules:
         { role: "user" as const, content: input.message },
       ];
 
-      const response = await mistral.chat.complete({
-        model: "mistral-large-latest",
-        maxTokens: 1000,
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        max_tokens: 1000,
         messages,
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "send_email",
+              description: "Send an email to a recipient",
+              parameters: {
+                type: "object",
+                properties: {
+                  to: { type: "string" },
+                  subject: { type: "string" },
+                  body: { type: "string" },
+                },
+                required: ["to", "subject", "body"],
+              },
+            },
+          },
+          {
+            type: "function",
+            function: {
+              name: "create_event",
+              description: "Create a calendar event",
+              parameters: {
+                type: "object",
+                properties: {
+                  summary: { type: "string" },
+                  description: { type: "string" },
+                  startTime: {
+                    type: "string",
+                    description:
+                      "ISO string with offset, e.g. 2026-06-14T09:00:00+05:30",
+                  },
+                  endTime: {
+                    type: "string",
+                    description: "ISO string with offset",
+                  },
+                  attendees: { type: "array", items: { type: "string" } },
+                  sendInvites: { type: "boolean" },
+                },
+                required: ["summary", "startTime", "endTime"],
+              },
+            },
+          },
+        ],
       });
 
-      const content = response.choices?.[0]?.message?.content;
-      const rawText = typeof content === "string" ? content : "";
-      let parsed: any = { thoughts: "", actions: [], reply: rawText };
-
-      try {
-        const clean = rawText.replace(/```json|```/g, "").trim();
-        parsed = JSON.parse(clean);
-      } catch {}
-
+      const choice = response.choices[0];
+      const message = choice.message;
+      let replyText = message.content ?? "I have processed your request.";
       const actionsExecuted: string[] = [];
 
-      for (const action of parsed.actions ?? []) {
-        try {
-          if (action.type === "send_email") {
-            const raw = encodeRawEmail({
-              to: action.to,
-              subject: action.subject,
-              body: action.body,
-            });
-            await tenant.gmail.api.messages.send({ raw });
-            actionsExecuted.push(
-              `Sent email to ${action.to} — "${action.subject}"`,
-            );
-          }
+      if (message.tool_calls && message.tool_calls.length > 0) {
+        for (const toolCall of message.tool_calls) {
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
 
-          if (action.type === "create_event") {
-            await tenant.googlecalendar.api.events.create({
-              calendarId: "primary",
-              sendUpdates: action.sendInvites ? "all" : "none",
-              event: {
-                summary: action.summary,
-                description: action.description ?? "",
-                start: { dateTime: action.startTime, timeZone: IST },
-                end: { dateTime: action.endTime, timeZone: IST },
-                attendees: (action.attendees ?? []).map((e: string) => ({
-                  email: e,
-                })),
-              },
-            });
+            if (toolCall.function.name === "send_email") {
+              const raw = encodeRawEmail({
+                to: args.to,
+                subject: args.subject,
+                body: args.body,
+              });
+              await tenant.gmail.api.messages.send({ raw });
+              actionsExecuted.push(
+                `Sent email to ${args.to} — "${args.subject}"`,
+              );
+            }
+
+            if (toolCall.function.name === "create_event") {
+              await tenant.googlecalendar.api.events.create({
+                calendarId: "primary",
+                sendUpdates: args.sendInvites ? "all" : "none",
+                requestBody: {
+                  summary: args.summary,
+                  description: args.description ?? "",
+                  start: { dateTime: args.startTime, timeZone: IST },
+                  end: { dateTime: args.endTime, timeZone: IST },
+                  attendees: (args.attendees ?? []).map((e: string) => ({
+                    email: e,
+                  })),
+                },
+              });
+              actionsExecuted.push(
+                `Created "${args.summary}" with ${args.attendees?.length ?? 0} attendee(s)`,
+              );
+            }
+          } catch (e) {
             actionsExecuted.push(
-              `Created "${action.summary}" with ${action.attendees?.length ?? 0} attendee(s)`,
+              `⚠ Failed: ${toolCall.function.name} — ${(e as Error).message}`,
             );
           }
-        } catch (e) {
-          actionsExecuted.push(
-            `⚠ Failed: ${action.type} — ${(e as Error).message}`,
-          );
+        }
+
+        if (!message.content) {
+          replyText = `I have successfully executed the following actions:\n${actionsExecuted.join("\n")}`;
         }
       }
 
@@ -292,16 +365,28 @@ Rules:
         { role: "user", content: input.message },
         {
           role: "assistant",
-          content: parsed.reply,
+          content: replyText,
           actionsJson: JSON.stringify(actionsExecuted),
-          tokensUsed: response.usage?.totalTokens ?? 0,
+          tokensUsed: response.usage?.total_tokens ?? 0,
         },
       ]);
 
+      await db
+        .insert(usage)
+        .values({
+          userId: ctx.session.user.id,
+          messagesUsed: 1,
+          resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        })
+        .onConflictDoUpdate({
+          target: usage.userId,
+          set: { messagesUsed: sql`${usage.messagesUsed} + 1` },
+        });
+
       return {
-        reply: parsed.reply,
+        reply: replyText,
         actionsExecuted,
-        thoughts: parsed.thoughts,
+        thoughts: "OpenAI native tools utilized.",
       };
     }),
 });
