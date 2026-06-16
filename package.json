@@ -114,5 +114,12 @@
   "ct3aMetadata": {
     "initVersion": "7.40.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
   "packageManager": "pnpm@10.11.1"
 }
