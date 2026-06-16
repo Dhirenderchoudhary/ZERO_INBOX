@@ -18,7 +18,8 @@ if (
 
 export async function middleware(req: NextRequest) {
   // Apply rate limiting to all /api routes if Redis is configured
-  if (false && ratelimit) {
+  /*
+  if (ratelimit) {
     const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
     const { success, limit, remaining } = await ratelimit.limit(ip);
 
@@ -35,6 +36,7 @@ export async function middleware(req: NextRequest) {
       );
     }
   }
+  */
 
   return NextResponse.next();
 }
