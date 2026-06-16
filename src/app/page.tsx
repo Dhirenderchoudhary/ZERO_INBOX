@@ -351,6 +351,8 @@ export default function LandingPage() {
   );
 }
 
+import { AnimatePresence, motion } from "framer-motion";
+
 function LandingThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -361,22 +363,54 @@ function LandingThemeToggle() {
 
   const isDark = mounted && resolvedTheme === "dark";
 
+  const toggleTheme = (event: React.MouseEvent) => {
+    const newTheme = isDark ? "light" : "dark";
+    if (!document.startViewTransition) {
+      setTheme(newTheme);
+      return;
+    }
+
+    const x = event.clientX;
+    const y = event.clientY;
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    );
+
+    const transition = document.startViewTransition(() => {
+      setTheme(newTheme);
+    });
+
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`,
+      ];
+      document.documentElement.animate(
+        {
+          clipPath: clipPath,
+        },
+        {
+          duration: 500,
+          easing: "ease-in-out",
+          pseudoElement: "::view-transition-new(root)",
+        },
+      );
+    });
+  };
+
   return (
     <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={toggleTheme}
       className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-white/50 text-neutral-950 shadow-sm backdrop-blur-md transition-all hover:scale-105 hover:bg-white/80 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
       aria-label="Toggle theme"
       title="Toggle theme"
+      style={{ perspective: "1000px" }}
     >
-      {mounted ? (
-        isDark ? (
-          <Moon size={15} />
-        ) : (
-          <Sun size={15} />
-        )
-      ) : (
-        <div className="size-[15px]" />
-      )}
+      <div className="relative flex items-center justify-center">
+        <Moon className="h-[15px] w-[15px] [transform:rotateY(0deg)] transition-all duration-500 dark:[transform:rotateY(180deg)] dark:opacity-0" />
+        <Sun className="absolute h-[15px] w-[15px] [transform:rotateY(-180deg)] opacity-0 transition-all duration-500 dark:[transform:rotateY(0deg)] dark:opacity-100" />
+      </div>
     </button>
   );
 }
