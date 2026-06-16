@@ -14,6 +14,7 @@ import {
   Star,
   ArrowRight,
   Hash,
+  Search,
 } from "lucide-react";
 
 const COMMANDS = [
@@ -98,8 +99,7 @@ export function CommandPalette() {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-start justify-center"
-          style={{ paddingTop: "18vh", background: "var(--bg-overlay)" }}
+          className="bg-background/60 fixed inset-0 z-50 flex items-start justify-center pt-[15vh] backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -107,65 +107,32 @@ export function CommandPalette() {
           onClick={() => setOpen(false)}
         >
           <motion.div
-            className="w-full max-w-[520px] overflow-hidden rounded-[14px]"
-            style={{
-              background: "var(--bg-modal)",
-              border: "1px solid var(--border-2)",
-              boxShadow:
-                "0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset",
-            }}
+            className="bg-card border-border/80 w-full max-w-[520px] overflow-hidden rounded-2xl border shadow-2xl"
             initial={{ opacity: 0, scale: 0.96, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -8 }}
             transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
             onClick={(e) => e.stopPropagation()}
           >
-            <Command shouldFilter loop>
+            <Command shouldFilter loop className="w-full bg-transparent">
               {/* Search input */}
-              <div
-                className="flex items-center gap-3 px-4 py-3.5"
-                style={{ borderBottom: "1px solid var(--border-1)" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M6.5 1a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zm4.776 5.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0zM14.354 13.646l-3-3a.5.5 0 0 0-.708.708l3 3a.5.5 0 0 0 .708-.708z"
-                    fill="var(--text-2)"
-                  />
-                </svg>
+              <div className="border-border/50 flex items-center gap-3 border-b px-4 py-3">
+                <Search size={18} className="text-muted-foreground shrink-0" />
                 <Command.Input
                   autoFocus
-                  placeholder="Search commands..."
+                  placeholder="Search commands, actions, workflows..."
                   value={search}
                   onValueChange={setSearch}
-                  className="flex-1 bg-transparent outline-none"
-                  style={{
-                    color: "var(--text-0)",
-                    fontSize: "14px",
-                    fontFamily: "var(--font-sans)",
-                    caretColor: "var(--accent)",
-                  }}
+                  className="text-foreground placeholder:text-muted-foreground/70 flex-1 bg-transparent text-[15px] outline-none"
                 />
-                <kbd
-                  className="t-mono rounded px-1.5 py-0.5 text-[10px]"
-                  style={{
-                    background: "var(--bg-4)",
-                    color: "var(--text-3)",
-                    border: "1px solid var(--border-2)",
-                  }}
-                >
+                <kbd className="border-border bg-muted/50 text-muted-foreground hidden rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-wider uppercase sm:inline-flex">
                   Esc
                 </kbd>
               </div>
 
               {/* Results */}
-              <Command.List
-                className="overflow-y-auto py-2"
-                style={{ maxHeight: "320px" }}
-              >
-                <Command.Empty
-                  className="t-small py-10 text-center"
-                  style={{ color: "var(--text-3)" }}
-                >
+              <Command.List className="custom-scrollbar max-h-[320px] overflow-y-auto px-2 py-2">
+                <Command.Empty className="text-muted-foreground py-10 text-center text-sm font-medium">
                   No results for &ldquo;{search}&rdquo;
                 </Command.Empty>
 
@@ -173,42 +140,30 @@ export function CommandPalette() {
                   <Command.Group
                     key={group.group}
                     heading={group.group}
-                    className="px-2"
+                    className="text-muted-foreground mt-2 px-2 py-1.5 text-xs font-semibold tracking-wider uppercase first:mt-0"
                   >
                     {group.items.map((item) => (
                       <Command.Item
                         key={item.label}
                         value={item.label}
                         onSelect={() => run(item)}
-                        className="flex cursor-pointer items-center gap-3 rounded-[7px] px-3 py-2"
+                        className="group aria-selected:bg-primary/10 aria-selected:text-primary data-[selected]:bg-primary/10 data-[selected]:text-primary flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
                       >
-                        <div
-                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[5px]"
-                          style={{ background: "var(--bg-4)" }}
-                        >
-                          <item.icon
-                            size={12}
-                            style={{ color: "var(--text-2)" }}
-                          />
+                        <div className="bg-muted/50 text-muted-foreground group-aria-selected:bg-primary/20 group-aria-selected:text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors">
+                          <item.icon size={14} />
                         </div>
-                        <span className="t-body flex-1">{item.label}</span>
-                        <div className="flex items-center gap-1.5">
+                        <span className="text-foreground group-aria-selected:text-primary flex-1 text-sm font-medium transition-colors">
+                          {item.label}
+                        </span>
+                        <div className="flex items-center gap-2">
                           {item.hint && (
-                            <span
-                              className="t-mono rounded px-1.5 py-0.5 text-[10px]"
-                              style={{
-                                background: "var(--bg-4)",
-                                color: "var(--text-3)",
-                                border: "1px solid var(--border-1)",
-                              }}
-                            >
+                            <span className="border-border bg-background text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium">
                               {item.hint}
                             </span>
                           )}
                           <ArrowRight
-                            size={12}
-                            style={{ color: "var(--text-3)" }}
-                            className="opacity-0 group-data-[selected]:opacity-100"
+                            size={14}
+                            className="text-primary -translate-x-2 opacity-0 transition-all group-aria-selected:translate-x-0 group-aria-selected:opacity-100"
                           />
                         </div>
                       </Command.Item>
@@ -218,33 +173,22 @@ export function CommandPalette() {
               </Command.List>
 
               {/* Footer */}
-              <div
-                className="flex items-center gap-4 px-4 py-2.5"
-                style={{ borderTop: "1px solid var(--border-0)" }}
-              >
+              <div className="border-border/50 bg-muted/20 flex items-center gap-4 border-t px-4 py-3">
                 {[
-                  { keys: ["↑", "↓"], label: "navigate" },
-                  { keys: ["↵"], label: "select" },
-                  { keys: ["Esc"], label: "close" },
+                  { keys: ["↑", "↓"], label: "Navigate" },
+                  { keys: ["↵"], label: "Select" },
+                  { keys: ["Esc"], label: "Close" },
                 ].map(({ keys, label }) => (
-                  <div key={label} className="flex items-center gap-1">
+                  <div key={label} className="flex items-center gap-1.5">
                     {keys.map((k) => (
                       <kbd
                         key={k}
-                        className="t-mono rounded px-1.5 py-px text-[10px]"
-                        style={{
-                          background: "var(--bg-4)",
-                          color: "var(--text-3)",
-                          border: "1px solid var(--border-2)",
-                        }}
+                        className="border-border/60 bg-background/50 text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium"
                       >
                         {k}
                       </kbd>
                     ))}
-                    <span
-                      className="t-micro"
-                      style={{ color: "var(--text-3)" }}
-                    >
+                    <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
                       {label}
                     </span>
                   </div>

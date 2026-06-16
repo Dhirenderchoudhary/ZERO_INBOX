@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 const createPrimaryNav = (dashboardHref: string) => [
   { label: "Dashboard", href: dashboardHref, icon: BarChart3 },
-  { label: "Inbox", href: "/inbox", icon: Inbox, badge: "6" },
+  { label: "Inbox", href: "/inbox", icon: Inbox },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "AI Agent", href: "/agent", icon: Bot, badge: "AI" },
 ];
@@ -32,8 +32,8 @@ const createPrimaryNav = (dashboardHref: string) => [
 const workspaceNav = [
   { label: "Starred", href: "/inbox?f=starred", icon: Star },
   { label: "Sent", href: "/inbox?f=sent", icon: Send },
-  { label: "Security", href: "/dashboard#security", icon: ShieldCheck },
-  { label: "Settings", href: "/dashboard#settings", icon: Settings },
+  { label: "Security", href: "/security", icon: ShieldCheck },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 const triageNav = [
@@ -103,7 +103,7 @@ export function Sidebar({
         )}
       </div>
 
-      <div className="space-y-6 overflow-y-auto px-3 py-4">
+      <div className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
         <Button
           className={cn(
             "w-full justify-start rounded-xl",
@@ -185,6 +185,9 @@ export function Sidebar({
           <Button
             variant="ghost"
             className="text-muted-foreground mt-2 w-full justify-start rounded-xl"
+            onClick={() => {
+              window.location.href = "mailto:support@zeroinbox.local";
+            }}
           >
             <LifeBuoy size={16} />
             Help & support

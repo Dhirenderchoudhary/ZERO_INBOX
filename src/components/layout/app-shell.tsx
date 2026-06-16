@@ -50,7 +50,7 @@ export function AppShell({
 
   return (
     <div className="app-surface bg-background text-foreground flex h-screen overflow-hidden">
-      <div className="hidden lg:block">
+      <div className="hidden shrink-0 lg:block">
         <Sidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed((value) => !value)}

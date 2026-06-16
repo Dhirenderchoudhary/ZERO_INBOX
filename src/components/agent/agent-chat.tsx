@@ -77,6 +77,9 @@ export function AgentChat() {
       setIsRecording(true);
     } catch (e) {
       console.error("Microphone access denied", e);
+      toast.error(
+        "Microphone access denied. Please allow microphone permissions in your browser to use voice features.",
+      );
     }
   };
 
@@ -106,6 +109,14 @@ export function AgentChat() {
     });
     setInput("");
   };
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) {
+      submit(q);
+      window.history.replaceState({}, "", "/agent");
+    }
+  }, []);
 
   return (
     <div className="h-full overflow-hidden p-4 sm:p-6 lg:p-8">
@@ -244,6 +255,12 @@ export function AgentChat() {
               onChange={(e) => {
                 if (e.target.value.length <= 500) {
                   setInput(e.target.value);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (input.length <= 500) submit();
                 }
               }}
               placeholder="Tell the agent what outcome you want..."
