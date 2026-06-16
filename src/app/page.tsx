@@ -308,8 +308,15 @@ export default function LandingPage() {
               variant="outline"
               size="lg"
               className="group h-12 rounded-xl border-black/20 bg-white/80 px-6 text-neutral-950 shadow-sm transition-all hover:bg-neutral-950 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white dark:hover:text-neutral-950"
+              asChild
             >
-              <Star size={16} className="fill-current" /> Star on GitHub
+              <a
+                href="https://github.com/Dhirenderchoudhary/ZERO_INBOX"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Star size={16} className="fill-current" /> Star on GitHub
+              </a>
             </Button>
             <Button
               size="lg"
