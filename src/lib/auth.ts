@@ -11,6 +11,7 @@ import { dash } from "@better-auth/infra";
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "fallback_secret_for_dev_mode",
   baseURL: env.NEXT_PUBLIC_APP_URL,
+  trustHost: true,
 
   database: drizzleAdapter(db, {
     provider: "pg",
