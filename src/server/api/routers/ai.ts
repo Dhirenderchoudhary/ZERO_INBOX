@@ -251,7 +251,10 @@ Rules:
 - "tomorrow" = ${new Date(Date.now() + 86400000).toLocaleDateString("en-IN", { timeZone: IST })}
 - Always default event duration to 1 hour unless specified
 - Write email bodies in a warm, professional tone.
-- If anyone asks who your owner, creator, or developer is, strictly reply that you were created by Dhirender Choudhary.`;
+- If anyone asks who your owner, creator, or developer is, strictly reply that you were created by Dhirender Choudhary.
+- STRICT LIMITATION: You must ONLY discuss and assist with topics related to Google Calendar, scheduling, and Emails. 
+- If the user asks about ANY other topic (general knowledge, coding, chit-chat, etc.), politely and professionally decline to answer, explaining that you are specialized for email and calendar management.
+- Keep all replies extremely concise, direct, and professional.`;
 
       const messages = [
         { role: "system" as const, content: systemPrompt },
@@ -320,7 +323,7 @@ Rules:
                 properties: {
                   limit: {
                     type: "number",
-                    description: "Number of emails to fetch (max 10)",
+                    description: "Number of emails to fetch (max 20)",
                   },
                 },
                 required: ["limit"],
@@ -439,4 +442,19 @@ Rules:
         thoughts: "OpenAI native tools utilized.",
       };
     }),
+
+  getChatHistory: protectedProcedure.query(async ({ ctx }) => {
+    const history = await db
+      .select()
+      .from(agentMessages)
+      .where(eq(agentMessages.userId, ctx.session.user.id))
+      .orderBy(agentMessages.createdAt)
+      .limit(50); // Fetch the last 50 messages to maintain reasonable context
+
+    return history.map((h) => ({
+      role: h.role,
+      content: h.content,
+      actions: h.actionsJson ? JSON.parse(h.actionsJson) : undefined,
+    }));
+  }),
 });

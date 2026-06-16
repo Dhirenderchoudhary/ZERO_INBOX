@@ -32,6 +32,16 @@ export function AgentChat() {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const historyQuery = api.ai.getChatHistory.useQuery(undefined, {
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (historyQuery.data && messages.length === 0) {
+      setMessages(historyQuery.data);
+    }
+  }, [historyQuery.data]);
+
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
