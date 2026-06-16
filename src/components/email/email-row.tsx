@@ -108,9 +108,39 @@ export function EmailRow({
             {snippet}
           </p>
           <div className="mt-3 flex items-center justify-between">
-            <Badge variant="outline" className="rounded-full text-[10px]">
-              AI triaged
-            </Badge>
+            {email?.priority === "urgent" ? (
+              <Badge
+                variant="outline"
+                className="rounded-full border-red-500/30 bg-red-500/5 text-[10px] text-red-500"
+              >
+                Urgent
+              </Badge>
+            ) : email?.priority === "needs_reply" ? (
+              <Badge
+                variant="outline"
+                className="rounded-full border-blue-500/30 bg-blue-500/5 text-[10px] text-blue-500"
+              >
+                Needs Reply
+              </Badge>
+            ) : email?.priority === "fyi" ? (
+              <Badge
+                variant="outline"
+                className="rounded-full border-violet-500/30 bg-violet-500/5 text-[10px] text-violet-500"
+              >
+                FYI
+              </Badge>
+            ) : email?.priority === "newsletter" ? (
+              <Badge
+                variant="outline"
+                className="rounded-full border-slate-500/30 bg-slate-500/5 text-[10px] text-slate-500"
+              >
+                Newsletter
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="rounded-full text-[10px]">
+                Standard
+              </Badge>
+            )}
             {email?.isStarred && (
               <Star size={14} className="fill-amber-400 text-amber-400" />
             )}
