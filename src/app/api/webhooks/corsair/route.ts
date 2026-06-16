@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { emailTriage, cachedEmails } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
-import { getCorsairClient } from "@/server/corsair";
+import { corsair } from "@/server/corsair";
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +14,6 @@ export async function POST(req: Request) {
     ) {
       const { accountId, entityId } = payload;
 
-      const corsair = getCorsairClient();
       // Fetch the actual message data
       const message = await corsair.getIntegrationEntity(accountId, entityId);
 
