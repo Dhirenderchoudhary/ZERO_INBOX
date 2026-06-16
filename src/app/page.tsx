@@ -362,23 +362,22 @@ function LandingThemeToggle() {
   const isDark = mounted && resolvedTheme === "dark";
 
   return (
-    <div className="relative flex items-center rounded-full border border-white/5 bg-neutral-900 p-1.5 text-[13px] font-medium text-white shadow-inner dark:bg-black/50">
-      <div
-        className={`absolute inset-y-1.5 left-1.5 w-[calc(50%-6px)] rounded-full bg-white transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isDark ? "translate-x-full" : "translate-x-0"}`}
-      />
-      <button
-        onClick={() => setTheme("light")}
-        className={`relative z-10 flex w-[72px] items-center justify-center gap-1.5 rounded-full py-1 transition-colors duration-300 ${!isDark ? "font-semibold text-neutral-900" : "text-neutral-400 hover:text-white"}`}
-      >
-        <Sun size={14} /> White
-      </button>
-      <button
-        onClick={() => setTheme("dark")}
-        className={`relative z-10 flex w-[72px] items-center justify-center gap-1.5 rounded-full py-1 transition-colors duration-300 ${isDark ? "font-semibold text-neutral-900" : "text-neutral-400 hover:text-white"}`}
-      >
-        <Moon size={14} /> Black
-      </button>
-    </div>
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-white/50 text-neutral-950 shadow-sm backdrop-blur-md transition-all hover:scale-105 hover:bg-white/80 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+      aria-label="Toggle theme"
+      title="Toggle theme"
+    >
+      {mounted ? (
+        isDark ? (
+          <Moon size={15} />
+        ) : (
+          <Sun size={15} />
+        )
+      ) : (
+        <div className="size-[15px]" />
+      )}
+    </button>
   );
 }
 

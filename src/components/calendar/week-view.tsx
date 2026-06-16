@@ -142,6 +142,11 @@ export function WeekView() {
                             <button
                               key={event.id || event.entity_id}
                               className={`w-full rounded-[4px] px-2 py-1 text-left text-[11px] font-bold tracking-tight shadow-sm transition-all hover:brightness-110 ${color.solid}`}
+                              onClick={() => {
+                                const link =
+                                  event.data?.htmlLink || event.htmlLink;
+                                if (link) window.open(link, "_blank");
+                              }}
                             >
                               <p className="truncate">{title}</p>
                             </button>
@@ -162,6 +167,11 @@ export function WeekView() {
                             <button
                               key={event.id || event.entity_id}
                               className="group hover:bg-muted/50 flex w-full items-start gap-1.5 rounded-md px-1.5 py-1 text-left text-[11px] transition-colors"
+                              onClick={() => {
+                                const link =
+                                  event.data?.htmlLink || event.htmlLink;
+                                if (link) window.open(link, "_blank");
+                              }}
                             >
                               <span
                                 className={`mt-[5px] size-2 shrink-0 rounded-full ${color.dot}`}
