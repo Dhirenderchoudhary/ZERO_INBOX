@@ -205,6 +205,7 @@ Respond with ONLY the category word. Nothing else.`,
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      /*
       if (ratelimit) {
         const { success } = await ratelimit.limit(ctx.session.user.id);
         if (!success) {
@@ -214,6 +215,7 @@ Respond with ONLY the category word. Nothing else.`,
           });
         }
       }
+      */
 
       const userUsageArray = await db
         .select()
