@@ -8,14 +8,18 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-const actions = [
-  "Archived 18 low-priority newsletters",
-  "Drafted a reply to Prisma onboarding",
-  "Detected failed deployment alert from Vercel",
-  "Created hold for investor sync tomorrow",
-];
+import { formatDistanceToNow } from "date-fns";
 
-export function RecentActions() {
+export function RecentActions({
+  data,
+}: {
+  data?: { id: number; content: string; createdAt: Date | null }[];
+}) {
+  const actions =
+    data && data.length > 0
+      ? data
+      : [{ id: 1, content: "No recent AI actions", createdAt: new Date() }];
+
   return (
     <Card className="bg-card/80 rounded-2xl shadow-sm">
       <CardHeader>
@@ -25,16 +29,21 @@ export function RecentActions() {
       <CardContent className="space-y-3">
         {actions.map((action) => (
           <div
-            key={action}
+            key={action.id}
             className="border-border/60 bg-background/55 hover:bg-muted/40 flex gap-3 rounded-2xl border p-3 transition-colors"
           >
             <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
               <CheckCircle2 size={15} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm leading-5 font-medium">{action}</p>
+              <p className="line-clamp-2 text-sm leading-5 font-medium">
+                {action.content}
+              </p>
               <p className="text-muted-foreground mt-0.5 text-xs">
-                Just now · reversible
+                {action.createdAt
+                  ? formatDistanceToNow(action.createdAt, { addSuffix: true })
+                  : "Just now"}{" "}
+                · reversible
               </p>
             </div>
           </div>
