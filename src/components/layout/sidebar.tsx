@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   BarChart3,
@@ -76,8 +77,15 @@ export function Sidebar({
           className="flex min-w-0 items-center gap-3"
           onClick={onNavigate}
         >
-          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-xl shadow-sm">
-            <Zap size={18} strokeWidth={2.5} />
+          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 shadow-sm">
+            <Image
+              src="/zero-inbox-logo-120.png"
+              alt="ZERO INBOX"
+              width={36}
+              height={36}
+              className="object-cover"
+              priority
+            />
           </div>
           {!collapsed && (
             <div className="min-w-0">
