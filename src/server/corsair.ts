@@ -2,11 +2,10 @@ import "dotenv/config";
 import { createCorsair, setupCorsair } from "corsair";
 import { gmail } from "@corsair-dev/gmail";
 import { googlecalendar } from "@corsair-dev/googlecalendar";
-import { conn } from "./db";
 
 export const corsair = createCorsair({
   plugins: [gmail(), googlecalendar()],
-  database: conn,
+  database: process.env.DATABASE_URL!,
   kek: process.env.CORSAIR_KEK!,
   multiTenancy: true,
 });
