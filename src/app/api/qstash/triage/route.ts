@@ -14,7 +14,9 @@ import { PrioritySchema } from "@/server/lib/schemas";
 import OpenAI from "openai";
 import { z } from "zod";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "dummy_key_for_build",
+});
 
 const TriagePayloadSchema = z.object({
   userId: z.string().min(1),
