@@ -22,6 +22,7 @@ import {
 } from "@/server/lib/emailUtils";
 import { LoadingDots } from "@/components/ui/LoadingDots";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -88,9 +89,10 @@ export function EmailDetail() {
     new Date().toISOString();
 
   // Try to decode body if missing
-  let body = e?.data?.text ?? e?.data?.html;
-  if (!body && e?.data?.payload) {
-    body = decodeEmailBody(e.data.payload);
+  let body = e?.data?.text ?? e?.data?.html ?? e?.text ?? e?.html;
+  const payloadToDecode = e?.data?.payload || e?.payload;
+  if (!body && payloadToDecode) {
+    body = decodeEmailBody(payloadToDecode);
   }
   if (!body) body = "No content";
 
@@ -193,9 +195,24 @@ export function EmailDetail() {
 
   if (isLoading) {
     return (
-      <section className="border-border/70 bg-card flex min-h-0 items-center justify-center rounded-2xl border shadow-sm">
-        <LoadingDots />
-      </section>
+      <div className="flex h-full flex-col space-y-6 p-6">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-3/4" />
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          </div>
+        </div>
+        <div className="space-y-4 pt-8">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-4/6" />
+        </div>
+      </div>
     );
   }
 

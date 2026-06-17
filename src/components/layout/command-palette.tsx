@@ -12,7 +12,6 @@ import {
   RefreshCw,
   Inbox,
   Star,
-  ArrowRight,
   Hash,
   Search,
 } from "lucide-react";
@@ -98,105 +97,78 @@ export function CommandPalette() {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="bg-background/60 fixed inset-0 z-50 flex items-start justify-center pt-[15vh] backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.12 }}
-          onClick={() => setOpen(false)}
-        >
+        <div className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-[15vh] sm:pt-[20vh]">
           <motion.div
-            className="bg-card border-border/80 w-full max-w-[520px] overflow-hidden rounded-2xl border shadow-2xl"
-            initial={{ opacity: 0, scale: 0.96, y: -8 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="bg-background/40 fixed inset-0 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -8 }}
-            transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
-            onClick={(e) => e.stopPropagation()}
+            exit={{ opacity: 0, scale: 0.96, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="border-border/60 bg-card/90 relative w-full max-w-lg overflow-hidden rounded-2xl border shadow-[0_20px_60px_rgba(0,0,0,0.15)] backdrop-blur-xl sm:w-[500px]"
           >
-            <Command shouldFilter loop className="w-full bg-transparent">
-              {/* Search input */}
-              <div className="border-border/50 flex items-center gap-3 border-b px-4 py-3">
-                <Search size={18} className="text-muted-foreground shrink-0" />
+            <Command
+              className="w-full flex-col overflow-hidden outline-none"
+              shouldFilter={true}
+            >
+              <div className="border-border/50 flex items-center border-b px-4">
+                <Search className="text-muted-foreground mr-3 h-5 w-5 shrink-0" />
                 <Command.Input
                   autoFocus
-                  placeholder="Search commands, actions, workflows..."
+                  placeholder="What do you need?"
                   value={search}
                   onValueChange={setSearch}
-                  className="text-foreground placeholder:text-muted-foreground/70 flex-1 bg-transparent text-[15px] outline-none"
+                  className="placeholder:text-muted-foreground/60 flex h-14 w-full bg-transparent py-3 text-[15px] font-medium outline-none"
                 />
-                <kbd className="border-border bg-muted/50 text-muted-foreground hidden rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-wider uppercase sm:inline-flex">
-                  Esc
-                </kbd>
+                <div className="text-muted-foreground/50 hidden text-[10px] font-bold tracking-wider sm:block">
+                  ESC
+                </div>
               </div>
-
-              {/* Results */}
-              <Command.List className="custom-scrollbar max-h-[320px] overflow-y-auto px-2 py-2">
-                <Command.Empty className="text-muted-foreground py-10 text-center text-sm font-medium">
-                  No results for &ldquo;{search}&rdquo;
+              <Command.List className="max-h-[340px] overflow-x-hidden overflow-y-auto p-2">
+                <Command.Empty className="text-muted-foreground py-8 text-center text-sm">
+                  No results found.
                 </Command.Empty>
-
                 {COMMANDS.map((group) => (
                   <Command.Group
                     key={group.group}
                     heading={group.group}
-                    className="text-muted-foreground mt-2 px-2 py-1.5 text-xs font-semibold tracking-wider uppercase first:mt-0"
+                    className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-wider"
                   >
                     {group.items.map((item) => (
                       <Command.Item
                         key={item.label}
-                        value={item.label}
                         onSelect={() => run(item)}
-                        className="group aria-selected:bg-primary/10 aria-selected:text-primary data-[selected]:bg-primary/10 data-[selected]:text-primary flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
+                        className="aria-selected:bg-primary/10 aria-selected:text-primary data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary text-foreground hover:bg-muted flex cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors outline-none"
                       >
-                        <div className="bg-muted/50 text-muted-foreground group-aria-selected:bg-primary/20 group-aria-selected:text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors">
-                          <item.icon size={14} />
+                        <div className="bg-foreground/5 text-foreground/70 aria-selected:bg-primary/20 aria-selected:text-primary data-[selected=true]:bg-primary/20 data-[selected=true]:text-primary flex size-6 items-center justify-center rounded-md transition-colors">
+                          <item.icon className="h-3.5 w-3.5" />
                         </div>
-                        <span className="text-foreground group-aria-selected:text-primary flex-1 text-sm font-medium transition-colors">
-                          {item.label}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {item.hint && (
-                            <span className="border-border bg-background text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium">
-                              {item.hint}
-                            </span>
-                          )}
-                          <ArrowRight
-                            size={14}
-                            className="text-primary -translate-x-2 opacity-0 transition-all group-aria-selected:translate-x-0 group-aria-selected:opacity-100"
-                          />
-                        </div>
+                        <span className="flex-1">{item.label}</span>
+                        {item.hint && (
+                          <div className="flex items-center gap-1 opacity-60">
+                            {item.hint.split(" ").map((k) => (
+                              <kbd
+                                key={k}
+                                className="bg-background border-border/60 text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider"
+                              >
+                                {k}
+                              </kbd>
+                            ))}
+                          </div>
+                        )}
                       </Command.Item>
                     ))}
                   </Command.Group>
                 ))}
               </Command.List>
-
-              {/* Footer */}
-              <div className="border-border/50 bg-muted/20 flex items-center gap-4 border-t px-4 py-3">
-                {[
-                  { keys: ["↑", "↓"], label: "Navigate" },
-                  { keys: ["↵"], label: "Select" },
-                  { keys: ["Esc"], label: "Close" },
-                ].map(({ keys, label }) => (
-                  <div key={label} className="flex items-center gap-1.5">
-                    {keys.map((k) => (
-                      <kbd
-                        key={k}
-                        className="border-border/60 bg-background/50 text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium"
-                      >
-                        {k}
-                      </kbd>
-                    ))}
-                    <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </Command>
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

@@ -149,7 +149,7 @@ export function EmailList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sender, subject, or action..."
-            className="bg-background/70 h-11 rounded-xl pr-10 pl-9"
+            className="bg-background/50 border-border/60 focus-visible:ring-primary placeholder:text-muted-foreground/50 h-11 rounded-xl pr-10 pl-9 shadow-sm transition-all focus-visible:ring-1"
           />
           <AnimatePresence>
             {search && (
@@ -175,13 +175,20 @@ export function EmailList() {
               key={tab.key}
               onClick={() => updateFilter(tab.key)}
               className={cn(
-                "relative rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                "relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
                 filter === tab.key
-                  ? "bg-primary text-primary-foreground"
+                  ? "text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
-              {tab.label}
+              {filter === tab.key && (
+                <motion.div
+                  layoutId="active-tab"
+                  className="bg-primary absolute inset-0 rounded-full"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative z-10">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -207,12 +214,32 @@ export function EmailList() {
           />
         ) : displayed.length === 0 ? (
           <EmptyState
-            icon={search ? Search : Inbox}
-            title={search ? "No matching threads" : "Inbox zero"}
+            icon={
+              search
+                ? Search
+                : ["urgent", "needs_reply", "fyi", "newsletter"].includes(
+                      filter,
+                    )
+                  ? Cpu
+                  : Inbox
+            }
+            title={
+              search
+                ? "No matching threads"
+                : ["urgent", "needs_reply", "fyi", "newsletter"].includes(
+                      filter,
+                    )
+                  ? `No ${filter.replace("_", " ")} emails`
+                  : "Inbox zero"
+            }
             description={
               search
                 ? `No emails match “${search}”. Try a broader query.`
-                : "All caught up. Refresh to sync Gmail or let the agent monitor new work."
+                : ["urgent", "needs_reply", "fyi", "newsletter"].includes(
+                      filter,
+                    )
+                  ? "If you just connected Gmail, the AI agent is currently triaging your inbox in the background. Check back in a minute!"
+                  : "All caught up. Refresh to sync Gmail or let the agent monitor new work."
             }
             action={
               search
@@ -221,8 +248,18 @@ export function EmailList() {
             }
           />
         ) : (
-          <AnimatePresence initial={false}>
-            {displayed.map((email, idx) => (
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.04 },
+              },
+            }}
+          >
+            {displayed.map((email: any, idx: number) => (
               <EmailRow
                 key={email.entity_id}
                 email={email}
@@ -235,7 +272,7 @@ export function EmailList() {
                 }}
               />
             ))}
-          </AnimatePresence>
+          </motion.div>
         )}
       </div>
 

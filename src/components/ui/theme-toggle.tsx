@@ -54,7 +54,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-2)] bg-[var(--bg-1)] text-[var(--text-1)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--text-0)]"
+      className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-8 w-8 items-center justify-center rounded-md transition-colors"
       style={{ perspective: "1000px" }}
       aria-label="Toggle theme"
     >

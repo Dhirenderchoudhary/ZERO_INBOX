@@ -1,6 +1,7 @@
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { getTenant } from "../../lib/tenant";
 import { addDays } from "date-fns";
+import { z } from "zod";
 import {
   CalendarEventSchema,
   WeekEventsSchema,
@@ -36,6 +37,29 @@ export const calendarRouter = createTRPCRouter({
       });
       const items = res.items ?? [];
       void setCalendarEventsCache(userId, input.weekStart, items);
+      return items;
+    }),
+
+  getEventsRange: protectedProcedure
+    .input(z.object({ start: z.string(), end: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const userId = ctx.session.user.id;
+      const cached = await getCalendarEventsCache(
+        userId,
+        `${input.start}_${input.end}`,
+      );
+      if (cached) return cached;
+
+      const tenant = getTenant(userId);
+      const res = await tenant.googlecalendar.api.events.getMany({
+        calendarId: "primary",
+        timeMin: new Date(input.start).toISOString(),
+        timeMax: new Date(input.end).toISOString(),
+        singleEvents: true,
+        orderBy: "startTime",
+      });
+      const items = res.items ?? [];
+      void setCalendarEventsCache(userId, `${input.start}_${input.end}`, items);
       return items;
     }),
 
