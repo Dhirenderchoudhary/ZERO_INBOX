@@ -75,7 +75,7 @@ export const gmailRouter = createTRPCRouter({
             });
             fetched.push(full);
             // Fire and forget upsert so it doesn't block the return
-            void tenant.gmail.db.messages.upsertByEntityId(msg.id, full);
+            void tenant.gmail.db.messages.upsertByEntityId(msg.id, full as any);
           }
           raw = fetched as any;
         } catch (error) {
