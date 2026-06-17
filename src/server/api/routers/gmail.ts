@@ -193,7 +193,11 @@ export const gmailRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
-      const raw = encodeRawEmail(input);
+      const raw = encodeRawEmail({
+        to: input.to ?? "",
+        subject: input.subject ?? "",
+        body: input.body ?? "",
+      });
       return tenant.gmail.api.drafts.create({ draft: { message: { raw } } });
     }),
 

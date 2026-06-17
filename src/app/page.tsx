@@ -23,6 +23,15 @@ import { useTheme } from "next-themes";
 import { signIn } from "@/lib/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FeaturesSection,
+  WorkflowsSection,
+  TestimonialsSection,
+  PricingSection,
+  FAQSection,
+  Footer,
+} from "@/components/landing/sections";
 
 const liveThreads = [
   {
@@ -238,7 +247,12 @@ export default function LandingPage() {
         />
 
         <section className="relative z-20 mx-auto flex max-w-7xl flex-col items-center px-4 pt-32 pb-16 text-center sm:px-6 sm:pt-40 lg:px-8">
-          <div className="relative mt-4 mb-7 flex flex-col items-center gap-4 rounded-[2rem] border border-white/20 bg-white/20 p-5 text-left shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl transition-all hover:border-white/30 hover:bg-white/30 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] sm:flex-row sm:items-center dark:border-white/10 dark:bg-white/5 dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)] dark:hover:bg-white/10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative mt-4 mb-7 flex flex-col items-center gap-4 rounded-[2rem] border border-white/20 bg-white/20 p-5 text-left shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl transition-all hover:border-white/30 hover:bg-white/30 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] sm:flex-row sm:items-center dark:border-white/10 dark:bg-white/5 dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)] dark:hover:bg-white/10"
+          >
             <Badge
               variant="outline"
               className="absolute -top-3.5 left-1/2 z-10 hidden -translate-x-1/2 rounded-full border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-emerald-700 backdrop-blur-md sm:inline-flex dark:text-emerald-300"
@@ -280,9 +294,14 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <h1 className="max-w-6xl text-[clamp(4rem,10vw,8.5rem)] leading-[0.95] text-balance">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="max-w-6xl text-[clamp(4rem,10vw,8.5rem)] leading-[0.95] text-balance"
+          >
             <span className="block font-serif font-medium tracking-tight text-[#383838] italic dark:text-neutral-300">
               Command every
             </span>
@@ -295,15 +314,25 @@ export default function LandingPage() {
             <span className="block font-extrabold tracking-[-0.05em] text-neutral-950 dark:text-white">
               inbox
             </span>
-          </h1>
+          </motion.h1>
 
-          <p className="mt-7 max-w-2xl text-base leading-7 font-medium text-balance text-neutral-600 sm:text-lg dark:text-neutral-300">
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-7 max-w-2xl text-base leading-7 font-medium text-balance text-neutral-600 sm:text-lg dark:text-neutral-300"
+          >
             Connect Gmail, Calendar, and AI agents to triage messages, schedule
             meetings, and automate communication without maintaining the
             busywork.
-          </p>
+          </motion.p>
 
-          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="mt-10 flex flex-col items-center gap-3 sm:flex-row"
+          >
             <a
               href="https://github.com/Dhirenderchoudhary/ZERO_INBOX"
               target="_blank"
@@ -326,10 +355,16 @@ export default function LandingPage() {
               <span className="ml-2 flex h-8 w-px bg-white/15 transition-colors group-hover:bg-neutral-950/15 dark:bg-neutral-950/15 dark:group-hover:bg-white/15" />
               <Copy size={15} className="opacity-70" />
             </Button>
-          </div>
+          </motion.div>
 
           <DashboardShowcase />
         </section>
+
+        <FeaturesSection />
+        <WorkflowsSection />
+        <TestimonialsSection />
+        <PricingSection />
+        <FAQSection />
 
         <footer className="mt-20 border-t border-black/10 dark:border-white/10">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 sm:px-6 md:flex-row lg:px-8">
@@ -353,11 +388,10 @@ export default function LandingPage() {
           </div>
         </footer>
       </main>
+      <Footer />
     </div>
   );
 }
-
-import { AnimatePresence, motion } from "framer-motion";
 
 function LandingThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
