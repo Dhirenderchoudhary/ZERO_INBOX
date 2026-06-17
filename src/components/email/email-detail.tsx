@@ -89,7 +89,11 @@ export function EmailDetail() {
     new Date().toISOString();
 
   // Try to decode body if missing
-  let body = e?.data?.text ?? e?.data?.html ?? e?.text ?? e?.html;
+  let body =
+    (e as any)?.data?.text ??
+    (e as any)?.data?.html ??
+    (e as any)?.text ??
+    (e as any)?.html;
   const payloadToDecode = e?.data?.payload || e?.payload;
   if (!body && payloadToDecode) {
     body = decodeEmailBody(payloadToDecode);

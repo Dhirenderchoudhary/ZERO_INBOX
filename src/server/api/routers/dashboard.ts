@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { emailTriage, agentMessages, usage } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getDashboardCache, setDashboardCache } from "../../lib/cache";
+import { getTenant } from "../../lib/tenant";
 
 export const dashboardRouter = createTRPCRouter({
   getStats: protectedProcedure.query(async ({ ctx }) => {
