@@ -39,13 +39,16 @@ async function syncGoogleTokens(account: any) {
 }
 
 export const auth = betterAuth({
-  secret: process.env.BETTER_AUTH_SECRET || "fallback_secret_for_dev_mode",
+  secret:
+    process.env.BETTER_AUTH_SECRET ||
+    "fallback_secret_for_dev_mode_which_is_now_32_chars_long!!",
   baseURL: env.NEXT_PUBLIC_APP_URL,
   trustHost: true,
   trustedOrigins: [
     "https://zeroinbox.fun",
     "https://www.zeroinbox.fun",
     "https://corsair.vercel.app",
+    "http://localhost:3000",
   ],
   rateLimit: {
     window: 60,

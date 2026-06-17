@@ -57,7 +57,7 @@ export const gmailRouter = createTRPCRouter({
     .input(ListWithTriageSchema)
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
-      let raw = await tenant.gmail.db.messages.list({ limit: 200 });
+      let raw = await tenant.gmail.db.messages.list({ limit: 50 });
 
       // Fallback: If DB is empty (e.g. first login), synchronously fetch a quick batch to prevent bad UX
       if (raw.length === 0) {
@@ -66,18 +66,27 @@ export const gmailRouter = createTRPCRouter({
             maxResults: 15,
           });
           const liveMessages = response.messages ?? [];
-          const fetched = [];
-          for (const msg of liveMessages) {
-            if (!msg.id) continue;
-            const full = await tenant.gmail.api.messages.get({
-              id: msg.id,
-              format: "metadata",
-            });
-            fetched.push(full);
-            // Fire and forget upsert so it doesn't block the return
-            void tenant.gmail.db.messages.upsertByEntityId(msg.id, full as any);
-          }
-          raw = fetched as any;
+          const fetched = await Promise.allSettled(
+            liveMessages.map(async (msg) => {
+              if (!msg.id) return null;
+              const full = await tenant.gmail.api.messages.get({
+                id: msg.id,
+                format: "metadata",
+              });
+              // Fire and forget upsert so it doesn't block the return
+              void tenant.gmail.db.messages.upsertByEntityId(
+                msg.id,
+                full as any,
+              );
+              return full;
+            }),
+          );
+          raw = fetched
+            .filter(
+              (result) =>
+                result.status === "fulfilled" && result.value !== null,
+            )
+            .map((result: any) => result.value) as any;
         } catch (error) {
           console.error("Fallback sync failed", error);
         }
@@ -94,13 +103,27 @@ export const gmailRouter = createTRPCRouter({
               .where(inArray(emailTriage.entityId, entityIds))
           : [];
 
-      const enriched = enrichWithTriage(messages, triageRows).filter((m) => {
+      let enriched = enrichWithTriage(messages, triageRows).filter((m) => {
         if (m.isArchived) return false;
         if (m.snoozedUntil && new Date(m.snoozedUntil) > new Date())
           return false;
         if (input.priority === "all") return true;
-        if (input.priority === "unread") return !m.isRead;
-        if (input.priority === "starred") return m.isStarred;
+        if (input.priority === "unread") {
+          const rawData = m.data as Record<string, unknown> | undefined;
+          const labelIds = rawData?.labelIds ?? m.labelIds ?? [];
+          return (
+            !m.isRead ||
+            (Array.isArray(labelIds) && labelIds.includes("UNREAD"))
+          );
+        }
+        if (input.priority === "starred") {
+          const rawData = m.data as Record<string, unknown> | undefined;
+          const labelIds = rawData?.labelIds ?? m.labelIds ?? [];
+          return (
+            m.isStarred ||
+            (Array.isArray(labelIds) && labelIds.includes("STARRED"))
+          );
+        }
         if (input.priority === "sent") {
           const rawData = m.data as Record<string, unknown> | undefined;
           const labelIds = rawData?.labelIds ?? m.labelIds ?? [];
@@ -108,6 +131,53 @@ export const gmailRouter = createTRPCRouter({
         }
         return m.priority === input.priority;
       });
+
+      // Targeted fallback if looking for starred/sent but none cached locally
+      if (
+        enriched.length === 0 &&
+        (input.priority === "starred" || input.priority === "sent")
+      ) {
+        try {
+          const query = input.priority === "starred" ? "is:starred" : "in:sent";
+          const response = await tenant.gmail.api.messages.list({
+            maxResults: 15,
+            q: query,
+          });
+          const liveMessages = response.messages ?? [];
+          const fetched = await Promise.allSettled(
+            liveMessages.map(async (msg) => {
+              if (!msg.id) return null;
+              const full = await tenant.gmail.api.messages.get({
+                id: msg.id,
+                format: "metadata",
+              });
+              void tenant.gmail.db.messages.upsertByEntityId(
+                msg.id,
+                full as any,
+              );
+              return full;
+            }),
+          );
+          const newRaw = fetched
+            .filter(
+              (result) =>
+                result.status === "fulfilled" && result.value !== null,
+            )
+            .map((result: any) => ({
+              ...result.value,
+              entity_id: result.value.id,
+              data: result.value,
+            })) as any;
+
+          const newMessages = dedupeAndSort(newRaw) as Record<
+            string,
+            unknown
+          >[];
+          enriched = enrichWithTriage(newMessages, []);
+        } catch (error) {
+          console.error("Targeted sync failed", error);
+        }
+      }
 
       return enriched.slice(0, input.limit);
     }),
@@ -142,7 +212,11 @@ export const gmailRouter = createTRPCRouter({
       try {
         cached = await tenant.gmail.db.messages.findByEntityId(entityId);
         const c = cached as Record<string, unknown> | null;
-        if (c?.data || c?.payload) {
+
+        const payload = (c?.data as any)?.payload || c?.payload;
+        const hasBodyContent = !!(payload?.parts || payload?.body?.data);
+
+        if ((c?.data || c?.payload) && hasBodyContent) {
           await db
             .insert(cachedEmails)
             .values({

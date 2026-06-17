@@ -117,6 +117,7 @@ async function handler(req: Request) {
   }
 }
 
-export const POST = process.env.QSTASH_CURRENT_SIGNING_KEY
-  ? verifySignatureAppRouter(handler)
-  : handler;
+export const POST =
+  process.env.NODE_ENV === "development"
+    ? handler
+    : verifySignatureAppRouter(handler);

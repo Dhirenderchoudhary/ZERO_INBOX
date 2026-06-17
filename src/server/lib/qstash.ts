@@ -82,6 +82,22 @@ export async function scheduleEmailViaQStash(
 export async function triggerBackgroundTriage(
   userId: string,
 ): Promise<string | null> {
+  if (
+    process.env.NODE_ENV === "development" &&
+    env.NEXT_PUBLIC_APP_URL.includes("localhost")
+  ) {
+    console.log(
+      "[qstash] Local dev: Triggering triage directly via fetch to bypass QStash localhost limitation",
+    );
+    // Fire and forget
+    fetch(`${env.NEXT_PUBLIC_APP_URL}/api/qstash/triage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    }).catch(console.error);
+    return "local-dev-trigger";
+  }
+
   const client = getQStashClient();
   if (!client) {
     console.warn(

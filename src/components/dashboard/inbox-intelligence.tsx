@@ -1,3 +1,5 @@
+"use client";
+
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,12 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useRouter } from "next/navigation";
 
 export function InboxIntelligence({
   data,
 }: {
   data?: { urgent: number; needs_reply: number; fyi: number; noise: number };
 }) {
+  const router = useRouter();
   const rows = [
     { label: "Urgent", value: data?.urgent ?? 0, color: "bg-red-500" },
     {
@@ -40,6 +44,7 @@ export function InboxIntelligence({
           variant="outline"
           size="sm"
           className="bg-background/60 rounded-xl"
+          onClick={() => router.push("/inbox")}
         >
           View report <ArrowUpRight size={14} />
         </Button>

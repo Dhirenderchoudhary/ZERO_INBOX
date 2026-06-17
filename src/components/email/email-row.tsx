@@ -4,6 +4,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 function formatEmailTime(dateStr: string | undefined): string {
   if (!dateStr) return "";
@@ -53,17 +54,20 @@ export function EmailRow({
   const snippet = email?.data?.snippet ?? email?.snippet ?? "";
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
+      variants={{
+        hidden: { opacity: 0, x: -10 },
+        show: { opacity: 1, x: 0 },
+      }}
       className={cn(
-        "group mx-3 my-2 w-[calc(100%-1.5rem)] rounded-2xl border p-4 text-left transition-all duration-200",
-        "hover:border-border hover:bg-card hover:-translate-y-0.5 hover:shadow-md",
+        "group mx-3 my-2 w-[calc(100%-1.5rem)] rounded-2xl p-4 text-left transition-all duration-200",
         isSelected
-          ? "border-primary/30 bg-card ring-primary/10 shadow-md ring-1"
+          ? "border-primary/40 bg-card ring-primary/20 border shadow-md ring-1"
           : isFocused
-            ? "border-border bg-card/80"
-            : "border-border/60 bg-card/55",
+            ? "glass-panel bg-card/70 border-primary/20"
+            : "glass-panel bg-card/40 border-border/40",
       )}
     >
       <div className="flex items-start gap-3">
@@ -147,6 +151,6 @@ export function EmailRow({
           </div>
         </div>
       </div>
-    </button>
+    </motion.button>
   );
 }

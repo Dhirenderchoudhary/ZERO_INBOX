@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { env } from "@/env";
 
 const REDIRECT_URI = `${env.NEXT_PUBLIC_APP_URL}/api/corsair/callback`;
-const ALLOWED_PLUGINS = ["gmail", "googlecalendar"] as const;
+const ALLOWED_PLUGINS = ["gmail", "googlecalendar", "googledrive"] as const;
 
 export const dynamic = "force-dynamic";
 

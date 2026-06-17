@@ -17,8 +17,18 @@ import { Sidebar } from "./sidebar";
 import { CommandPalette } from "./command-palette";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { signOut } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useKeyboard } from "@/hooks/useKeyboard";
 import { GlobalCompose } from "@/components/email/GlobalCompose";
@@ -39,6 +49,7 @@ export function AppShell({
   user: any;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   useKeyboard();
@@ -113,13 +124,11 @@ export function AppShell({
 
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("cmd-k"))}
-            className="border-border/70 bg-background/70 text-muted-foreground hover:bg-muted/60 hidden h-10 w-full max-w-[360px] items-center gap-3 rounded-xl border px-3 text-sm shadow-sm transition-colors md:flex"
+            className="border-border bg-background/50 text-muted-foreground hover:bg-muted/80 hidden h-9 w-full max-w-[280px] items-center gap-2 rounded-lg border px-3 text-sm shadow-sm transition-colors md:flex"
           >
-            <Search size={16} />
-            <span className="flex-1 text-left">
-              Search emails, events, actions...
-            </span>
-            <kbd className="bg-muted rounded-md border px-1.5 py-0.5 font-mono text-[10px]">
+            <Search size={14} />
+            <span className="flex-1 text-left">Search everything...</span>
+            <kbd className="bg-muted text-muted-foreground rounded border border-b-2 px-1.5 py-0.5 font-mono text-[10px] font-semibold">
               ⌘K
             </kbd>
           </button>
@@ -131,15 +140,27 @@ export function AppShell({
             <ShieldCheck size={12} /> Secure
           </Badge>
           <ThemeToggle />
-          <Button variant="ghost" size="icon" className="relative">
+          <Link
+            href="/notifications"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "icon" }),
+              "text-muted-foreground hover:text-foreground relative",
+            )}
+          >
             <Bell size={17} />
             <span className="ring-background absolute top-2 right-2 size-2 rounded-full bg-blue-500 ring-2" />
             <span className="sr-only">Notifications</span>
-          </Button>
-          <Button variant="ghost" size="icon" className="hidden sm:inline-flex">
+          </Link>
+          <Link
+            href="/settings"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "icon" }),
+              "text-muted-foreground hover:text-foreground hidden sm:inline-flex",
+            )}
+          >
             <Settings size={17} />
             <span className="sr-only">Settings</span>
-          </Button>
+          </Link>
           <UserMenu user={user} />
         </header>
 
@@ -162,31 +183,47 @@ export function AppShell({
 
 function UserMenu({ user }: { user: any }) {
   return (
-    <div className="border-border/70 bg-background/70 flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 shadow-sm">
-      <Avatar size="sm">
-        {user?.image && (
-          <AvatarImage src={user.image} alt={user.name ?? "User"} />
-        )}
-        <AvatarFallback>{user?.name?.[0] ?? "U"}</AvatarFallback>
-      </Avatar>
-      <div className="hidden min-w-0 sm:block">
-        <p className="max-w-28 truncate text-xs font-medium">
-          {user?.name ?? "User"}
-        </p>
-      </div>
-      <button
-        className={cn(
-          "text-muted-foreground hover:text-foreground text-xs font-medium transition-colors",
-        )}
-        onClick={async () => {
-          const { signOut } = await import("@/lib/auth-client");
-          await signOut();
-          window.location.href = "/";
-        }}
-      >
-        Sign out
-      </button>
-      <Sparkles size={12} className="text-muted-foreground hidden sm:block" />
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger className="border-border/70 bg-background/70 hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded-full border py-1 pr-3 pl-1 shadow-sm transition-colors outline-none">
+        <Avatar size="sm">
+          {user?.image && (
+            <AvatarImage src={user.image} alt={user.name ?? "User"} />
+          )}
+          <AvatarFallback>{user?.name?.[0] ?? "U"}</AvatarFallback>
+        </Avatar>
+        <div className="hidden min-w-0 sm:block">
+          <p className="max-w-28 truncate text-xs font-medium">
+            {user?.name ?? "User"}
+          </p>
+        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 rounded-xl">
+        <div className="px-2 py-1.5 text-sm font-medium">
+          {user?.name ?? "Account"}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Link href="/settings" className="w-full cursor-pointer">
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <Link href="/security" className="w-full cursor-pointer">
+            Security
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
+          onClick={async () => {
+            const { signOut } = await import("@/lib/auth-client");
+            await signOut();
+            window.location.href = "/";
+          }}
+        >
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

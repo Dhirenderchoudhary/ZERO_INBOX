@@ -256,7 +256,7 @@ function NavSection({
               {active && (
                 <motion.span
                   layoutId="sidebar-active"
-                  className="bg-sidebar-accent absolute inset-0 rounded-xl shadow-sm"
+                  className="bg-primary/15 border-primary/20 absolute inset-0 rounded-xl border shadow-[0_0_15px_rgba(99,102,241,0.15)]"
                   transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                 />
               )}

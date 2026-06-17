@@ -99,6 +99,7 @@ function FloatingTechIcon({
 
 export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -110,6 +111,7 @@ export default function LandingPage() {
   }, []);
 
   const handleSignIn = () => {
+    setIsSigningIn(true);
     signIn.social({ provider: "google", callbackURL: "/dashboard" });
   };
 
@@ -122,17 +124,15 @@ export default function LandingPage() {
       <DashedArc className="top-[33rem] right-[4rem] rotate-6 opacity-70" />
 
       <header
-        className={`fixed top-0 right-0 left-0 z-50 mx-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          isScrolled
-            ? "max-w-5xl px-4 pt-4 sm:px-6 lg:px-8"
-            : "max-w-7xl px-4 pt-6 sm:px-6 lg:px-8"
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          isScrolled ? "px-4 pt-4" : "pt-6"
         }`}
       >
         <div
-          className={`relative flex items-center justify-between gap-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`mx-auto flex items-center justify-between gap-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isScrolled
-              ? "h-14 rounded-full border border-white/20 bg-white/20 px-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/5 dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)]"
-              : "h-16 rounded-none border-transparent bg-transparent px-2"
+              ? "h-14 max-w-5xl rounded-full border border-white/20 bg-white/20 px-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/5 dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)]"
+              : "h-16 max-w-7xl rounded-none border-transparent bg-transparent px-4 sm:px-6 lg:px-8"
           }`}
         >
           <div className="flex items-center gap-3 pl-1">
@@ -182,9 +182,16 @@ export default function LandingPage() {
             </div>
             <Button
               onClick={handleSignIn}
-              className={`h-9 rounded-full px-4 text-[13px] font-semibold transition-colors duration-500 ${isScrolled ? "bg-neutral-950 text-white shadow-sm hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200" : "bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"}`}
+              disabled={isSigningIn}
+              className={`h-9 rounded-full px-4 text-[13px] font-semibold transition-all duration-300 active:scale-95 ${isScrolled ? "bg-neutral-950 text-white shadow-sm hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200" : "bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"}`}
             >
-              Go to app <ArrowRight size={14} className="ml-1" />
+              {isSigningIn ? (
+                "Connecting..."
+              ) : (
+                <>
+                  Go to app <ArrowRight size={14} className="ml-1" />
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -245,14 +252,6 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="relative mt-4 mb-7 flex flex-col items-center gap-4 rounded-[2rem] border border-white/20 bg-white/20 p-5 text-left shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl transition-all hover:border-white/30 hover:bg-white/30 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] sm:flex-row sm:items-center dark:border-white/10 dark:bg-white/5 dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)] dark:hover:bg-white/10"
           >
-            <Badge
-              variant="outline"
-              className="absolute -top-3.5 left-1/2 z-10 hidden -translate-x-1/2 rounded-full border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-emerald-700 backdrop-blur-md sm:inline-flex dark:text-emerald-300"
-            >
-              <span className="mr-1.5 size-1.5 animate-pulse rounded-full bg-emerald-500" />
-              Live
-            </Badge>
-
             <div className="flex items-center gap-3 pr-4 sm:border-r sm:border-black/10 sm:dark:border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -333,7 +332,7 @@ export default function LandingPage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="group h-12 rounded-xl border-black/20 bg-white/80 px-6 text-neutral-950 shadow-sm transition-all hover:bg-neutral-950 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white dark:hover:text-neutral-950"
+                className="group h-12 rounded-xl border-black/20 bg-white/80 px-6 text-neutral-950 shadow-sm transition-all hover:bg-neutral-950 hover:text-white active:scale-95 dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white dark:hover:text-neutral-950"
               >
                 <Star size={16} className="fill-current" /> Star on GitHub
               </Button>
@@ -341,11 +340,23 @@ export default function LandingPage() {
             <Button
               size="lg"
               onClick={handleSignIn}
-              className="group h-12 rounded-xl border border-neutral-950 bg-neutral-950 px-6 text-white shadow-xl shadow-neutral-900/15 transition-all hover:bg-white hover:text-neutral-950 dark:border-white dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-950 dark:hover:text-white"
+              disabled={isSigningIn}
+              className="group h-12 rounded-xl border border-neutral-950 bg-neutral-950 px-6 text-white shadow-xl shadow-neutral-900/15 transition-all hover:bg-white hover:text-neutral-950 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-950 dark:hover:text-white"
             >
-              Go to app <ArrowRight size={16} />
-              <span className="ml-2 flex h-8 w-px bg-white/15 transition-colors group-hover:bg-neutral-950/15 dark:bg-neutral-950/15 dark:group-hover:bg-white/15" />
-              <Copy size={15} className="opacity-70" />
+              {isSigningIn ? (
+                <>
+                  <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-neutral-950/30 dark:border-t-neutral-950" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  Go to app{" "}
+                  <ArrowRight
+                    size={16}
+                    className="ml-2 transition-transform group-hover:translate-x-1"
+                  />
+                </>
+              )}
             </Button>
           </motion.div>
 
