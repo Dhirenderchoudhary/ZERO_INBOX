@@ -5,13 +5,52 @@ import { env } from "@/env";
 import * as schema from "@/server/db/schema";
 import { setupCorsair } from "corsair";
 import { corsair } from "@/server/corsair";
-import { parseRawGoogleMessage } from "@/server/lib/emailUtils";
 import { dash } from "@better-auth/infra";
+import { triggerInboxSyncWorkflow } from "@/server/lib/qstash";
+
+async function syncGoogleTokens(account: any) {
+  if (account.providerId !== "google") return;
+
+  const tenant = corsair.withTenant(account.userId);
+  const tasks = [];
+
+  if (account.accessToken) {
+    tasks.push(tenant.gmail.keys.set_access_token(account.accessToken));
+    tasks.push(
+      tenant.googlecalendar.keys.set_access_token(account.accessToken),
+    );
+  }
+
+  if (account.refreshToken) {
+    tasks.push(tenant.gmail.keys.set_refresh_token(account.refreshToken));
+    tasks.push(
+      tenant.googlecalendar.keys.set_refresh_token(account.refreshToken),
+    );
+  }
+
+  if (account.accessTokenExpiresAt) {
+    const expires = account.accessTokenExpiresAt.toISOString();
+    tasks.push(tenant.gmail.keys.set_expires_at(expires));
+    tasks.push(tenant.googlecalendar.keys.set_expires_at(expires));
+  }
+
+  // Run all 6 DB updates in parallel to prevent blocking the OAuth login screen
+  await Promise.all(tasks);
+}
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "fallback_secret_for_dev_mode",
   baseURL: env.NEXT_PUBLIC_APP_URL,
   trustHost: true,
+  trustedOrigins: [
+    "https://zeroinbox.fun",
+    "https://www.zeroinbox.fun",
+    "https://corsair.vercel.app",
+  ],
+  rateLimit: {
+    window: 60,
+    max: 1000,
+  },
 
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -34,7 +73,8 @@ export const auth = betterAuth({
     session: {
       create: {
         after: async (session) => {
-          await setupCorsair(corsair, { tenantId: session.userId });
+          // Fire and forget so we don't block login
+          void setupCorsair(corsair, { tenantId: session.userId });
         },
       },
     },
@@ -42,79 +82,18 @@ export const auth = betterAuth({
       create: {
         after: async (account) => {
           if (account.providerId === "google") {
-            const tenant = corsair.withTenant(account.userId);
-            if (account.accessToken) {
-              await tenant.gmail.keys.set_access_token(account.accessToken);
-              await tenant.googlecalendar.keys.set_access_token(
-                account.accessToken,
-              );
-            }
-            if (account.refreshToken) {
-              await tenant.gmail.keys.set_refresh_token(account.refreshToken);
-              await tenant.googlecalendar.keys.set_refresh_token(
-                account.refreshToken,
-              );
-            }
-            if (account.accessTokenExpiresAt) {
-              const expires = account.accessTokenExpiresAt.toISOString();
-              await tenant.gmail.keys.set_expires_at(expires);
-              await tenant.googlecalendar.keys.set_expires_at(expires);
-            }
+            await syncGoogleTokens(account);
 
             // Fire and forget a background sync for the new user's inbox
-            (async () => {
-              try {
-                const response = await tenant.gmail.api.messages.list({
-                  maxResults: 50,
-                });
-                for (const msg of response.messages ?? []) {
-                  if (msg.id) {
-                    try {
-                      const fullMsg = await tenant.gmail.api.messages.get({
-                        id: msg.id,
-                        format: "full",
-                      });
-                      const parsed = parseRawGoogleMessage(fullMsg);
-                      await tenant.gmail.db.messages.upsertByEntityId(
-                        msg.id,
-                        parsed,
-                      );
-                    } catch (err) {
-                      console.error(
-                        `Failed to fetch/upsert message ${msg.id}`,
-                        err,
-                      );
-                    }
-                  }
-                }
-              } catch (e) {
-                console.error("Auto-sync failed", e);
-              }
-            })();
+            // Uses Upstash Workflow for durable execution
+            void triggerInboxSyncWorkflow(account.userId);
           }
         },
       },
       update: {
         after: async (account) => {
           if (account.providerId === "google") {
-            const tenant = corsair.withTenant(account.userId);
-            if (account.accessToken) {
-              await tenant.gmail.keys.set_access_token(account.accessToken);
-              await tenant.googlecalendar.keys.set_access_token(
-                account.accessToken,
-              );
-            }
-            if (account.refreshToken) {
-              await tenant.gmail.keys.set_refresh_token(account.refreshToken);
-              await tenant.googlecalendar.keys.set_refresh_token(
-                account.refreshToken,
-              );
-            }
-            if (account.accessTokenExpiresAt) {
-              const expires = account.accessTokenExpiresAt.toISOString();
-              await tenant.gmail.keys.set_expires_at(expires);
-              await tenant.googlecalendar.keys.set_expires_at(expires);
-            }
+            await syncGoogleTokens(account);
           }
         },
       },

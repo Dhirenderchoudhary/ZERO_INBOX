@@ -15,6 +15,13 @@
       "when": 1781434852670,
       "tag": "0001_absent_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781701734439,
+      "tag": "0002_broken_marvel_zombies",
+      "breakpoints": true
     }
   ]
 }

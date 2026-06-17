@@ -61,18 +61,18 @@ export function decodeEmailBody(payload: any): string {
     return tryDecode(payload.body.data);
   }
 
-  let htmlBody = "";
+  let textBody = "";
   if (payload.parts) {
     for (const part of payload.parts) {
-      if (part.mimeType === "text/plain" && part.body?.data) {
+      if (part.mimeType === "text/html" && part.body?.data) {
         const decoded = tryDecode(part.body.data);
         if (decoded) return decoded;
       }
-      if (part.mimeType === "text/html" && part.body?.data) {
-        htmlBody = tryDecode(part.body.data);
+      if (part.mimeType === "text/plain" && part.body?.data) {
+        textBody = tryDecode(part.body.data);
       }
     }
-    if (htmlBody) return htmlBody;
+    if (textBody) return textBody;
 
     for (const part of payload.parts) {
       const nested = decodeEmailBody(part);

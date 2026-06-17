@@ -1,12 +1,33 @@
 import {
   pgTable,
+  pgEnum,
   text,
   jsonb,
   timestamp,
   boolean,
   integer,
   serial,
+  index,
 } from "drizzle-orm/pg-core";
+
+// ─── Enums ─────────────────────────────────────────────────────────────────────
+export const priorityEnum = pgEnum("email_priority", [
+  "urgent",
+  "needs_reply",
+  "fyi",
+  "newsletter",
+  "other",
+]);
+
+export const agentRoleEnum = pgEnum("agent_role", ["user", "assistant"]);
+
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active",
+  "cancelled",
+  "halted",
+  "expired",
+  "pending",
+]);
 
 // ─── Better Auth tables ────────────────────────────────────────────────────────
 export const user = pgTable("user", {
@@ -69,7 +90,10 @@ export const corsairIntegrations = pgTable("corsair_integrations", {
     .notNull()
     .defaultNow(),
   name: text("name").notNull(),
-  config: jsonb("config").notNull().default({}),
+  config: jsonb("config")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default({}),
   dek: text("dek"),
 });
 
@@ -85,7 +109,10 @@ export const corsairAccounts = pgTable("corsair_accounts", {
   integrationId: text("integration_id")
     .notNull()
     .references(() => corsairIntegrations.id),
-  config: jsonb("config").notNull().default({}),
+  config: jsonb("config")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default({}),
   dek: text("dek"),
 });
 
@@ -103,7 +130,7 @@ export const corsairEntities = pgTable("corsair_entities", {
   entityId: text("entity_id").notNull(),
   entityType: text("entity_type").notNull(),
   version: text("version").notNull(),
-  data: jsonb("data").notNull().default({}),
+  data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
 });
 
 export const corsairEvents = pgTable("corsair_events", {
@@ -118,29 +145,34 @@ export const corsairEvents = pgTable("corsair_events", {
     .notNull()
     .references(() => corsairAccounts.id),
   eventType: text("event_type").notNull(),
-  payload: jsonb("payload").notNull().default({}),
+  payload: jsonb("payload")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default({}),
   status: text("status"),
 });
 
-export const emailTriage = pgTable("email_triage", {
-  id: serial("id").primaryKey(),
-  entityId: text("entity_id").unique().notNull(),
-  priority: text("priority", {
-    enum: ["urgent", "needs_reply", "fyi", "newsletter", "other"],
-  })
-    .notNull()
-    .default("other"),
-  isRead: boolean("is_read").notNull().default(false),
-  isArchived: boolean("is_archived").notNull().default(false),
-  isStarred: boolean("is_starred").notNull().default(false),
-  snoozedUntil: timestamp("snoozed_until"),
-  triagedAt: timestamp("triaged_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+export const emailTriage = pgTable(
+  "email_triage",
+  {
+    id: serial("id").primaryKey(),
+    entityId: text("entity_id").unique().notNull(),
+    priority: priorityEnum("priority").notNull().default("other"),
+    isRead: boolean("is_read").notNull().default(false),
+    isArchived: boolean("is_archived").notNull().default(false),
+    isStarred: boolean("is_starred").notNull().default(false),
+    snoozedUntil: timestamp("snoozed_until"),
+    triagedAt: timestamp("triaged_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [index("email_triage_entity_idx").on(table.entityId)],
+);
 
 export const scheduledEmails = pgTable("scheduled_emails", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   to: text("to").notNull(),
   subject: text("subject").notNull(),
   body: text("body").notNull(),
@@ -153,8 +185,8 @@ export const scheduledEmails = pgTable("scheduled_emails", {
 
 export const agentMessages = pgTable("agent_messages", {
   id: serial("id").primaryKey(),
-  userId: text("user_id"),
-  role: text("role", { enum: ["user", "assistant"] }).notNull(),
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+  role: agentRoleEnum("role").notNull(),
   content: text("content").notNull(),
   actionsJson: text("actions_json"),
   tokensUsed: integer("tokens_used"),
@@ -171,10 +203,12 @@ export const emailNotes = pgTable("email_notes", {
 // ─── Zero Inbox Additions ────────────────────────────────────────────────
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   razorpaySubscriptionId: text("razorpay_subscription_id").unique(),
   planId: text("plan_id").notNull(),
-  status: text("status").notNull().default("active"),
+  status: subscriptionStatusEnum("status").notNull().default("active"),
   currentPeriodEnd: timestamp("current_period_end"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -182,7 +216,10 @@ export const subscriptions = pgTable("subscriptions", {
 
 export const usage = pgTable("usage", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").unique().notNull(),
+  userId: text("user_id")
+    .unique()
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   messagesUsed: integer("messages_used").notNull().default(0),
   resetDate: timestamp("reset_date").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -191,13 +228,15 @@ export const usage = pgTable("usage", {
 
 export const cachedEmails = pgTable("cached_emails", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   entityId: text("entity_id").unique().notNull(),
   subject: text("subject"),
   snippet: text("snippet"),
   from: text("from_address"),
   date: timestamp("date"),
-  payload: jsonb("payload"),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

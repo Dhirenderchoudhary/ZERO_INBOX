@@ -1,0 +1,7 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔎 Running local CI checks before push..."
+pnpm typecheck
+pnpm test
+pnpm build

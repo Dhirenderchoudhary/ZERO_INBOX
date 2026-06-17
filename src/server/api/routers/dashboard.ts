@@ -2,10 +2,17 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { db } from "../../db";
 import { emailTriage, agentMessages, usage } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { getDashboardCache, setDashboardCache } from "../../lib/cache";
 
 export const dashboardRouter = createTRPCRouter({
   getStats: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
+
+    // ── Check Redis cache first (3 min TTL) ──────────────────────────────────
+    const cached = await getDashboardCache(userId);
+    if (cached) {
+      return { ...cached, recentActions: [] }; // recentActions fetched separately below
+    }
 
     // 1. Priority threads (urgent & unread)
     const priorityThreadsResult = await db
@@ -79,7 +86,7 @@ export const dashboardRouter = createTRPCRouter({
       noise: totalTriage ? Math.round((noise / totalTriage) * 100) : 0,
     };
 
-    // 6. Recent Actions
+    // 6. Recent Actions (not cached — always fresh)
     const recentActions = await db
       .select({
         id: agentMessages.id,
@@ -96,12 +103,19 @@ export const dashboardRouter = createTRPCRouter({
       .orderBy(sql`${agentMessages.createdAt} DESC`)
       .limit(4);
 
-    return {
+    const statsToCache = {
       priorityThreads,
       replyObligations,
       aiActions,
       meetingsAutomated,
       inboxIntelligence,
+    };
+
+    // Cache stats (fire and forget — don't block response)
+    void setDashboardCache(userId, statsToCache);
+
+    return {
+      ...statsToCache,
       recentActions,
     };
   }),

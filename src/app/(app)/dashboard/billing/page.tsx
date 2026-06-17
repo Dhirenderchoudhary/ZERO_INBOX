@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CheckoutButton } from "@/components/dashboard/checkout-button";
 
 export default function BillingPage() {
   return (
@@ -66,7 +67,7 @@ export default function BillingPage() {
                 <li>✓ Priority processing</li>
               </ul>
               {/* Note: This would typically trigger a Razorpay checkout modal */}
-              <Button className="mt-4 w-full">Upgrade to Pro</Button>
+              <CheckoutButton />
             </CardContent>
           </Card>
         </div>

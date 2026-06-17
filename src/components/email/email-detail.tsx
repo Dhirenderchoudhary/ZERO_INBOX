@@ -47,10 +47,30 @@ export function EmailDetail() {
     ReturnType<typeof api.gmail.markRead.useMutation>["mutate"] | null
   >(null);
 
-  const { data: email, isLoading } = api.gmail.getOne.useQuery(
-    { entityId: selectedId! },
-    { enabled: !!selectedId },
-  );
+  // Gmail API returns deeply dynamic data - use a typed interface for component access
+  type EmailDetailData = {
+    data?: {
+      payload?: { headers?: { name: string; value: string }[] };
+      subject?: string;
+      from?: string;
+      date?: string;
+      text?: string;
+      html?: string;
+    };
+    payload?: { headers?: { name: string; value: string }[] };
+    subject?: string;
+    from?: string;
+    updated_at?: string;
+    isStarred?: boolean;
+  };
+
+  const { data: emailRaw, isLoading } = api.gmail.getOne.useQuery(selectedId!, {
+    enabled: !!selectedId,
+    staleTime: Infinity,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  const emailRawTyped = emailRaw as unknown as EmailDetailData | undefined;
+  const email = emailRawTyped;
 
   const e = email;
   const headers = e?.data?.payload?.headers || e?.payload?.headers || [];
@@ -73,6 +93,12 @@ export function EmailDetail() {
     body = decodeEmailBody(e.data.payload);
   }
   if (!body) body = "No content";
+
+  let isHtml = !!e?.data?.html;
+  if (!isHtml && typeof body === "string") {
+    isHtml =
+      body.includes("<html") || body.includes("<body") || body.includes("<div");
+  }
 
   const senderEmail = parseSenderEmail(from);
   const senderName = parseSenderName(from);
@@ -119,19 +145,15 @@ export function EmailDetail() {
       return;
 
     markedReadIdsRef.current.add(selectedId);
-    markReadMutateRef.current?.(
-      { entityId: selectedId },
-      {
-        onError: () => {
-          markedReadIdsRef.current.delete(selectedId);
-        },
+    markReadMutateRef.current?.(selectedId, {
+      onError: () => {
+        markedReadIdsRef.current.delete(selectedId);
       },
-    );
+    });
   }, [selectedId, email]);
 
   useEffect(() => {
-    const onArchive = () =>
-      selectedId && archive.mutate({ entityId: selectedId });
+    const onArchive = () => selectedId && archive.mutate(selectedId);
     const onReply = () => {
       const e = email;
       if (!e) return;
@@ -242,7 +264,7 @@ export function EmailDetail() {
             variant="ghost"
             size="sm"
             className="rounded-xl"
-            onClick={() => archive.mutate({ entityId: selectedId })}
+            onClick={() => archive.mutate(selectedId)}
           >
             <Archive className="size-4" /> Archive
           </Button>
@@ -317,10 +339,18 @@ export function EmailDetail() {
             )}
           </AnimatePresence>
 
-          <div
-            className="prose prose-sm text-foreground dark:prose-invert max-w-none leading-8 whitespace-pre-wrap"
-            dangerouslySetInnerHTML={{ __html: linkify(body) }}
-          />
+          {isHtml ? (
+            <iframe
+              sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+              className="h-[800px] w-full rounded-lg border-0 bg-white dark:bg-white"
+              srcDoc={body}
+            />
+          ) : (
+            <div
+              className="prose prose-sm text-foreground dark:prose-invert max-w-none leading-8 whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: linkify(body) }}
+            />
+          )}
         </article>
       </div>
 

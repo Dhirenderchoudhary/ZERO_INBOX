@@ -6,9 +6,6 @@ import type { OpenApiMeta } from "trpc-to-openapi";
 import { db } from "@/server/db";
 import { auth } from "@/lib/auth";
 
-/**
- * 1. CONTEXT
- */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
   const session = await auth.api.getSession({ headers: opts.headers });
   return {
@@ -18,9 +15,6 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
   };
 };
 
-/**
- * 2. INITIALIZATION
- */
 const t = initTRPC
   .context<typeof createTRPCContext>()
   .meta<OpenApiMeta>()
@@ -40,9 +34,6 @@ const t = initTRPC
 
 export const createCallerFactory = t.createCallerFactory;
 
-/**
- * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)
- */
 export const createTRPCRouter = t.router;
 
 const timingMiddleware = t.middleware(async ({ next, path, type, ctx }) => {
@@ -87,14 +78,8 @@ const timingMiddleware = t.middleware(async ({ next, path, type, ctx }) => {
   return result;
 });
 
-/**
- * Public (unauthenticated) procedure
- */
 export const publicProcedure = t.procedure.use(timingMiddleware);
 
-/**
- * Protected (authenticated) procedure
- */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {

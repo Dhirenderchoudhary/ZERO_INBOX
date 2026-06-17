@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { getTenant } from "../../lib/tenant";
 import { encodeRawEmail, parseRawGoogleMessage } from "../../lib/emailUtils";
@@ -6,45 +5,61 @@ import { dedupeAndSort } from "../../lib/dedup";
 import { db } from "../../db";
 import { emailTriage, scheduledEmails, cachedEmails } from "../../db/schema";
 import { inArray, eq } from "drizzle-orm";
+import {
+  EntityIdSchema,
+  ListWithTriageSchema,
+  SearchEmailSchema,
+  SendEmailSchema,
+  SaveDraftSchema,
+  ScheduledEmailSchema,
+  SnoozeEmailSchema,
+  ToggleStarSchema,
+} from "../../lib/schemas";
+import { scheduleEmailViaQStash } from "../../lib/qstash";
+import {
+  invalidateTriageCache,
+  invalidateDashboardCache,
+} from "../../lib/cache";
 
-function enrichWithTriage(messages: any[], triageRows: any[]) {
+function enrichWithTriage(
+  messages: Record<string, unknown>[],
+  triageRows: {
+    entityId: string;
+    priority: string;
+    isRead: boolean;
+    isStarred: boolean;
+    isArchived: boolean;
+    snoozedUntil: Date | null;
+  }[],
+): (Record<string, unknown> & {
+  priority: string;
+  isRead: boolean;
+  isStarred: boolean;
+  isArchived: boolean;
+  snoozedUntil: Date | null;
+})[] {
   const map = new Map(triageRows.map((r) => [r.entityId, r]));
-  return messages.map((m) => ({
-    ...m,
-    priority: map.get(m.entity_id)?.priority ?? "other",
-    isRead: map.get(m.entity_id)?.isRead ?? false,
-    isStarred: map.get(m.entity_id)?.isStarred ?? false,
-    isArchived: map.get(m.entity_id)?.isArchived ?? false,
-    snoozedUntil: map.get(m.entity_id)?.snoozedUntil ?? null,
-  }));
+  return messages.map((m) => {
+    const entityId = m.entity_id as string;
+    return {
+      ...m,
+      priority: map.get(entityId)?.priority ?? "other",
+      isRead: map.get(entityId)?.isRead ?? false,
+      isStarred: map.get(entityId)?.isStarred ?? false,
+      isArchived: map.get(entityId)?.isArchived ?? false,
+      snoozedUntil: map.get(entityId)?.snoozedUntil ?? null,
+    };
+  });
 }
 
 export const gmailRouter = createTRPCRouter({
   listWithTriage: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().int().min(1).max(100).default(50),
-        priority: z
-          .enum([
-            "all",
-            "urgent",
-            "needs_reply",
-            "fyi",
-            "newsletter",
-            "other",
-            "unread",
-            "starred",
-            "sent",
-          ])
-          .default("all"),
-      }),
-    )
+    .input(ListWithTriageSchema)
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
-      // Fetch more than requested since we might filter many out
       const raw = await tenant.gmail.db.messages.list({ limit: 200 });
-      const messages = dedupeAndSort(raw);
-      const entityIds = messages.map((m) => m.entity_id);
+      const messages = dedupeAndSort(raw) as Record<string, unknown>[];
+      const entityIds = messages.map((m) => m.entity_id as string);
 
       const triageRows =
         entityIds.length > 0
@@ -62,7 +77,8 @@ export const gmailRouter = createTRPCRouter({
         if (input.priority === "unread") return !m.isRead;
         if (input.priority === "starred") return m.isStarred;
         if (input.priority === "sent") {
-          const labelIds = m.data?.labelIds ?? m.labelIds ?? [];
+          const rawData = m.data as Record<string, unknown> | undefined;
+          const labelIds = rawData?.labelIds ?? m.labelIds ?? [];
           return Array.isArray(labelIds) && labelIds.includes("SENT");
         }
         return m.priority === input.priority;
@@ -72,12 +88,7 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   search: protectedProcedure
-    .input(
-      z.object({
-        query: z.string().trim().min(1).max(200),
-        limit: z.number().int().min(1).max(50).default(30),
-      }),
-    )
+    .input(SearchEmailSchema)
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       const results = await tenant.gmail.db.messages.search({
@@ -88,42 +99,42 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   getOne: protectedProcedure
-    .input(z.object({ entityId: z.string().trim().min(1).max(255) }))
+    .input(EntityIdSchema.transform((v) => ({ entityId: v })))
     .query(async ({ input, ctx }) => {
+      const entityId = input.entityId;
+
       // 1. Check custom Zero Inbox cache
       const customCache = await db.query.cachedEmails.findFirst({
-        where: eq(cachedEmails.entityId, input.entityId),
+        where: eq(cachedEmails.entityId, entityId),
       });
       if (customCache?.payload) {
         return { data: customCache.payload, payload: customCache.payload };
       }
 
       const tenant = getTenant(ctx.session.user.id);
-      let cached: any = null;
+      let cached: unknown = null;
 
       try {
-        cached = await tenant.gmail.db.messages.findByEntityId(input.entityId);
-        if (cached?.data?.body || cached?.data?.payload || cached?.payload) {
+        cached = await tenant.gmail.db.messages.findByEntityId(entityId);
+        const c = cached as Record<string, unknown> | null;
+        if (c?.data || c?.payload) {
           await db
             .insert(cachedEmails)
             .values({
               userId: ctx.session.user.id,
-              entityId: input.entityId,
-              payload: cached.data || cached.payload,
+              entityId,
+              payload: (c.data ?? c.payload) as Record<string, unknown>,
             })
             .onConflictDoNothing();
-          return cached;
+          return c;
         }
       } catch (error) {
-        console.warn(
-          `Cache miss or db error for email ${input.entityId}:`,
-          error,
-        );
+        console.warn(`Cache miss or db error for email ${entityId}:`, error);
       }
 
       try {
         const result = await tenant.gmail.api.messages.get({
-          id: input.entityId,
+          id: entityId,
           format: "full",
         });
         if (result) {
@@ -131,8 +142,8 @@ export const gmailRouter = createTRPCRouter({
             .insert(cachedEmails)
             .values({
               userId: ctx.session.user.id,
-              entityId: input.entityId,
-              payload: result,
+              entityId,
+              payload: result as Record<string, unknown>,
             })
             .onConflictDoNothing();
         }
@@ -155,9 +166,6 @@ export const gmailRouter = createTRPCRouter({
             format: "full",
           });
           const parsed = parseRawGoogleMessage(fullMsg);
-          console.log(
-            `[REFRESH] Parsed msg ${msg.id}: from=${parsed.from}, subject=${parsed.subject}`,
-          );
           await tenant.gmail.db.messages.upsertByEntityId(msg.id, parsed);
           synced++;
         } catch {
@@ -169,14 +177,7 @@ export const gmailRouter = createTRPCRouter({
   }),
 
   send: protectedProcedure
-    .input(
-      z.object({
-        to: z.string().trim().email("Invalid email address"),
-        subject: z.string().trim().min(1, "Subject is required").max(255),
-        body: z.string().trim().min(1, "Body is required").max(10000),
-        cc: z.string().trim().email("Invalid cc email address").optional(),
-      }),
-    )
+    .input(SendEmailSchema)
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       const raw = encodeRawEmail(input);
@@ -184,13 +185,7 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   saveDraft: protectedProcedure
-    .input(
-      z.object({
-        to: z.string().trim().email().optional().or(z.literal("")),
-        subject: z.string().trim().max(255).optional(),
-        body: z.string().trim().max(10000).optional(),
-      }),
-    )
+    .input(SaveDraftSchema)
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       const raw = encodeRawEmail({
@@ -202,32 +197,47 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   scheduleSend: protectedProcedure
-    .input(
-      z.object({
-        to: z.string().trim().email(),
-        subject: z.string().trim().min(1).max(255),
-        body: z.string().trim().min(1).max(10000),
-        cc: z.string().trim().email().optional(),
-        sendAt: z.string().datetime(),
-      }),
-    )
+    .input(ScheduledEmailSchema)
     .mutation(async ({ input, ctx }) => {
+      const userId = ctx.session.user.id;
+      const sendAt = new Date(input.sendAt);
+
+      // 1. Insert into DB (source of truth + cron fallback)
       const [row] = await db
         .insert(scheduledEmails)
         .values({
-          userId: ctx.session.user.id,
+          userId,
+          to: input.to,
+          subject: input.subject,
+          body: input.body,
+          cc: input.cc ?? null,
+          sendAt,
+        })
+        .returning();
+
+      // 2. Publish to QStash for exact-time delivery with retries
+      const qstashMessageId = await scheduleEmailViaQStash(
+        {
+          scheduledEmailId: row!.id,
+          userId,
           to: input.to,
           subject: input.subject,
           body: input.body,
           cc: input.cc,
-          sendAt: new Date(input.sendAt),
-        })
-        .returning();
-      return { id: row!.id, sendAt: input.sendAt };
+        },
+        sendAt,
+      );
+
+      return {
+        id: row!.id,
+        sendAt: input.sendAt,
+        qstashMessageId,
+        deliveryMethod: qstashMessageId ? "qstash" : "cron_fallback",
+      };
     }),
 
   markRead: protectedProcedure
-    .input(z.object({ entityId: z.string().trim().min(1).max(255) }))
+    .input(EntityIdSchema.transform((v) => ({ entityId: v })))
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       let syncedToGmail = true;
@@ -241,10 +251,7 @@ export const gmailRouter = createTRPCRouter({
         syncedToGmail = false;
         console.warn(
           "Failed to sync Gmail read state; keeping local read state",
-          {
-            entityId: input.entityId,
-            error,
-          },
+          { entityId: input.entityId, error },
         );
       }
 
@@ -260,7 +267,7 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   archive: protectedProcedure
-    .input(z.object({ entityId: z.string().trim().min(1).max(255) }))
+    .input(EntityIdSchema.transform((v) => ({ entityId: v })))
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       await tenant.gmail.api.messages.modify({
@@ -277,12 +284,7 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   toggleStar: protectedProcedure
-    .input(
-      z.object({
-        entityId: z.string().trim().min(1).max(255),
-        starred: z.boolean(),
-      }),
-    )
+    .input(ToggleStarSchema)
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       await tenant.gmail.api.messages.modify({
@@ -301,13 +303,8 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   snooze: protectedProcedure
-    .input(
-      z.object({
-        entityId: z.string().trim().min(1).max(255),
-        snoozeUntil: z.string().datetime(),
-      }),
-    )
-    .mutation(async ({ input, ctx: _ctx }) => {
+    .input(SnoozeEmailSchema)
+    .mutation(async ({ input }) => {
       await db
         .insert(emailTriage)
         .values({

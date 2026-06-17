@@ -78,9 +78,9 @@ export function EmailList() {
   });
 
   const triage = api.ai.triageInbox.useMutation({
-    onSuccess: (d) => {
+    onSuccess: () => {
       refetch();
-      toast.success(`Triaged ${d.triaged} emails with AI`);
+      toast.success("Background AI triage queued successfully");
     },
     onError: () => toast.error("AI triage failed"),
   });

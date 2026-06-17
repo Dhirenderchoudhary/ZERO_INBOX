@@ -105,6 +105,9 @@ export function AgentChat() {
         },
       ]);
     },
+    onError: (error) => {
+      toast.error(error.message || "The AI agent failed to respond.");
+    },
   });
 
   useEffect(() => {

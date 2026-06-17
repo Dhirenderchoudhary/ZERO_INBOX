@@ -1,6 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
-import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import OpenAI from "openai";
 import { TRPCError } from "@trpc/server";
@@ -17,6 +14,22 @@ import { getTenant } from "../../lib/tenant";
 import { encodeRawEmail } from "../../lib/emailUtils";
 import { dedupeAndSort } from "../../lib/dedup";
 import { eq, sql } from "drizzle-orm";
+import {
+  AgentChatSchema,
+  TriageOneSchema,
+  SummarizeEmailSchema,
+  DraftReplySchema,
+  PrioritySchema,
+} from "../../lib/schemas";
+import {
+  getAiSummaryCache,
+  setAiSummaryCache,
+  getAiDraftCache,
+  setAiDraftCache,
+  setEntityTriageCache,
+  invalidateDashboardCache,
+} from "../../lib/cache";
+import { triggerBackgroundTriage } from "../../lib/qstash";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
@@ -28,34 +41,29 @@ if (
   ratelimit = new Ratelimit({
     redis: Redis.fromEnv(),
     limiter: Ratelimit.slidingWindow(10, "1 m"),
+    prefix: "zeroinbox:ai",
   });
+}
+
+/** Parse AI output against known priority values safely via Zod. */
+function parsePriority(raw: string | null | undefined) {
+  const result = PrioritySchema.safeParse(
+    (typeof raw === "string" ? raw : "").trim().toLowerCase(),
+  );
+  return result.success ? result.data : ("other" as const);
 }
 
 export const aiRouter = createTRPCRouter({
   triageOne: protectedProcedure
-    .input(
-      z.object({
-        entityId: z.string().trim().min(1).max(255),
-        subject: z.string().trim().max(1000),
-        snippet: z.string().trim().max(5000),
-        from: z.string().trim().max(255),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
+    .input(TriageOneSchema)
+    .mutation(async ({ input }) => {
       const msg = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         max_tokens: 15,
         messages: [
           {
             role: "system",
-            content: `You are an email triage assistant. Classify into exactly one category:
-- urgent: time-sensitive, needs immediate action today
-- needs_reply: sender is waiting for your response  
-- fyi: informational, read when you have time
-- newsletter: marketing, newsletters, automated emails
-- other: everything else
-
-Respond with ONLY the category word. Nothing else.`,
+            content: `You are an email triage assistant. Classify into exactly one category:\n- urgent: time-sensitive, needs immediate action today\n- needs_reply: sender is waiting for your response  \n- fyi: informational, read when you have time\n- newsletter: marketing, newsletters, automated emails\n- other: everything else\n\nRespond with ONLY the category word. Nothing else.`,
           },
           {
             role: "user",
@@ -64,20 +72,7 @@ Respond with ONLY the category word. Nothing else.`,
         ],
       });
 
-      const content = msg.choices?.[0]?.message?.content;
-      const raw = (typeof content === "string" ? content : "")
-        .trim()
-        .toLowerCase();
-      const valid = [
-        "urgent",
-        "needs_reply",
-        "fyi",
-        "newsletter",
-        "other",
-      ] as const;
-      const priority = valid.includes(raw as any)
-        ? (raw as (typeof valid)[number])
-        : "other";
+      const priority = parsePriority(msg.choices[0]?.message?.content);
 
       await db
         .insert(emailTriage)
@@ -91,66 +86,32 @@ Respond with ONLY the category word. Nothing else.`,
     }),
 
   triageInbox: protectedProcedure.mutation(async ({ ctx }) => {
-    const tenant = getTenant(ctx.session.user.id);
-    const raw = await tenant.gmail.db.messages.list({ limit: 30 });
-    const messages = dedupeAndSort(raw).slice(0, 20);
+    // ── QStash Background Processing ──────────────────────────────────────────
+    // Instead of blocking the UI, we queue the triage job to run in the background.
+    const messageId = await triggerBackgroundTriage(ctx.session.user.id);
 
-    const existing = await db
-      .select()
-      .from(emailTriage)
-      .where(eq(emailTriage.priority, "other"));
-    const triaged = new Set(existing.map((r) => r.entityId));
-
-    let count = 0;
-    for (const m of messages) {
-      if (triaged.has(m.entity_id)) continue;
-      try {
-        const msg = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          max_tokens: 15,
-          messages: [
-            {
-              role: "system",
-              content:
-                "Classify email: urgent, needs_reply, fyi, newsletter, or other. Reply with ONLY the word.",
-            },
-            {
-              role: "user",
-              content: `From: ${m.data?.from ?? ""}\nSubject: ${m.data?.subject ?? ""}\nPreview: ${m.data?.snippet ?? ""}`,
-            },
-          ],
-        });
-        const content = msg.choices?.[0]?.message?.content;
-        const rawText = (typeof content === "string" ? content : "")
-          .trim()
-          .toLowerCase();
-        const valid = ["urgent", "needs_reply", "fyi", "newsletter", "other"];
-        const priority = valid.includes(rawText) ? rawText : "other";
-        await db
-          .insert(emailTriage)
-          .values({ entityId: m.entity_id, priority: priority as any })
-          .onConflictDoUpdate({
-            target: emailTriage.entityId,
-            set: { priority: priority as any, triagedAt: new Date() },
-          });
-        count++;
-        await new Promise((r) => setTimeout(r, 120));
-      } catch (error) {
-        console.error(`Failed to triage email ${m.entity_id}:`, error);
-      }
+    if (!messageId) {
+      // Fallback if QStash is not configured: We could do inline processing here,
+      // but for now we'll throw an error so the user knows they need Upstash.
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "QStash is not configured. Background triage requires QSTASH_TOKEN.",
+      });
     }
-    return { triaged: count };
+
+    return { queued: true, messageId };
   }),
 
   summarize: protectedProcedure
-    .input(
-      z.object({
-        subject: z.string().trim().max(1000),
-        body: z.string().trim().max(10000),
-        from: z.string().trim().max(255),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
+    .input(SummarizeEmailSchema)
+    .mutation(async ({ input }) => {
+      // ── Check Redis cache first ────────────────────────────────────────────
+      // Build a stable cache key from subject + from (no entityId in this schema)
+      const cacheKey = `${input.from}::${input.subject}`;
+      const cached = await getAiSummaryCache(cacheKey);
+      if (cached) return { summary: cached, fromCache: true };
+
       const msg = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         max_tokens: 120,
@@ -166,19 +127,19 @@ Respond with ONLY the category word. Nothing else.`,
           },
         ],
       });
-      const content = msg.choices?.[0]?.message?.content;
-      return { summary: typeof content === "string" ? content : "" };
+      const summary = msg.choices[0]?.message?.content ?? "";
+      void setAiSummaryCache(cacheKey, summary);
+      return { summary, fromCache: false };
     }),
 
   draftReply: protectedProcedure
-    .input(
-      z.object({
-        subject: z.string().trim().max(1000),
-        body: z.string().trim().max(10000),
-        from: z.string().trim().max(255),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
+    .input(DraftReplySchema)
+    .mutation(async ({ input }) => {
+      // ── Check Redis cache first ────────────────────────────────────────────
+      const cacheKey = `${input.from}::${input.subject}`;
+      const cached = await getAiDraftCache(cacheKey);
+      if (cached) return { draft: cached, fromCache: true };
+
       const msg = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         max_tokens: 300,
@@ -194,26 +155,15 @@ Respond with ONLY the category word. Nothing else.`,
           },
         ],
       });
-      const content = msg.choices?.[0]?.message?.content;
-      return { draft: typeof content === "string" ? content : "" };
+      const draft = msg.choices[0]?.message?.content ?? "";
+      void setAiDraftCache(cacheKey, draft);
+      return { draft, fromCache: false };
     }),
 
   agentChat: protectedProcedure
-    .input(
-      z.object({
-        message: z.string().trim().min(1).max(2000),
-        history: z
-          .array(
-            z.object({
-              role: z.enum(["user", "assistant"]),
-              content: z.string().trim().max(2000),
-            }),
-          )
-          .default([]),
-      }),
-    )
+    .input(AgentChatSchema)
     .mutation(async ({ input, ctx }) => {
-      /*
+      // ── Rate limiting (per user, 10 requests per minute) ──────────────────
       if (ratelimit) {
         const { success } = await ratelimit.limit(ctx.session.user.id);
         if (!success) {
@@ -223,8 +173,8 @@ Respond with ONLY the category word. Nothing else.`,
           });
         }
       }
-      */
 
+      // ── Message budget check ──────────────────────────────────────────────
       const userUsageArray = await db
         .select()
         .from(usage)
@@ -264,16 +214,25 @@ Rules:
 - If the user asks about ANY other topic (general knowledge, coding, chit-chat, etc.), politely and professionally decline to answer, explaining that you are specialized for email and calendar management.
 - Keep all replies extremely concise, direct, and professional.`;
 
-      const messages = [
-        { role: "system" as const, content: systemPrompt },
+      type ChatMessage =
+        | { role: "system" | "user" | "assistant"; content: string }
+        | {
+            role: "tool";
+            tool_call_id: string;
+            name: string;
+            content: string;
+          };
+
+      const messages: ChatMessage[] = [
+        { role: "system", content: systemPrompt },
         ...input.history.map((h) => ({
-          role: h.role as "user" | "assistant",
+          role: h.role,
           content: h.content,
         })),
-        { role: "user" as const, content: input.message },
+        { role: "user", content: input.message },
       ];
 
-      let response = await openai.chat.completions.create({
+      const response = await openai.chat.completions.create({
         model: "gpt-4o",
         max_tokens: 1000,
         messages,
@@ -341,8 +300,8 @@ Rules:
         ],
       });
 
-      let choice = response.choices[0];
-      let message = choice.message;
+      const choice = response.choices[0];
+      const message = choice!.message;
       let replyText = message.content ?? "I have processed your request.";
       const actionsExecuted: string[] = [];
 
@@ -352,13 +311,22 @@ Rules:
         for (const toolCall of message.tool_calls) {
           let toolResult = "Success";
           try {
-            const args = JSON.parse(toolCall.function.arguments);
+            const tc = toolCall as {
+              id: string;
+              function: { name: string; arguments: string };
+            };
+            const args = JSON.parse(tc.function.arguments) as Record<
+              string,
+              unknown
+            >;
 
-            if (toolCall.function.name === "fetch_recent_emails") {
-              const raw = await tenant.gmail.db.messages.list({
-                limit: Math.min(args.limit || 5, 20),
-              });
-              const deduped = dedupeAndSort(raw).slice(0, args.limit || 5);
+            if (tc.function.name === "fetch_recent_emails") {
+              const limit = Math.min(
+                typeof args.limit === "number" ? args.limit : 5,
+                20,
+              );
+              const raw = await tenant.gmail.db.messages.list({ limit });
+              const deduped = dedupeAndSort(raw).slice(0, limit);
               toolResult = deduped
                 .map(
                   (m) =>
@@ -366,47 +334,61 @@ Rules:
                 )
                 .join("\n\n");
               actionsExecuted.push(`Fetched ${deduped.length} recent emails.`);
-            } else if (toolCall.function.name === "send_email") {
-              const raw = encodeRawEmail({
-                to: args.to,
-                subject: args.subject,
-                body: args.body,
-              });
+            } else if (tc.function.name === "send_email") {
+              const to = typeof args.to === "string" ? args.to : "";
+              const subject =
+                typeof args.subject === "string" ? args.subject : "";
+              const body = typeof args.body === "string" ? args.body : "";
+              const raw = encodeRawEmail({ to, subject, body });
               await tenant.gmail.api.messages.send({ raw });
-              actionsExecuted.push(
-                `Sent email to ${args.to} — "${args.subject}"`,
-              );
-            } else if (toolCall.function.name === "create_event") {
+              actionsExecuted.push(`Sent email to ${to} — "${subject}"`);
+            } else if (tc.function.name === "create_event") {
+              const attendeeEmails = (
+                Array.isArray(args.attendees) ? args.attendees : []
+              ) as string[];
               await tenant.googlecalendar.api.events.create({
                 calendarId: "primary",
                 sendUpdates: args.sendInvites ? "all" : "none",
-                requestBody: {
-                  summary: args.summary,
-                  description: args.description ?? "",
-                  start: { dateTime: args.startTime, timeZone: IST },
-                  end: { dateTime: args.endTime, timeZone: IST },
-                  attendees: (args.attendees ?? []).map((e: string) => ({
-                    email: e,
-                  })),
+                event: {
+                  summary: typeof args.summary === "string" ? args.summary : "",
+                  description:
+                    typeof args.description === "string"
+                      ? args.description
+                      : "",
+                  start: {
+                    dateTime:
+                      typeof args.startTime === "string" ? args.startTime : "",
+                    timeZone: IST,
+                  },
+                  end: {
+                    dateTime:
+                      typeof args.endTime === "string" ? args.endTime : "",
+                    timeZone: IST,
+                  },
+                  attendees: attendeeEmails.map((e) => ({ email: e })),
                 },
               });
               actionsExecuted.push(
-                `Created "${args.summary}" with ${args.attendees?.length ?? 0} attendee(s)`,
+                `Created "${typeof args.summary === "string" ? args.summary : ""}" with ${attendeeEmails.length} attendee(s)`,
               );
             }
           } catch (e) {
             toolResult = `Error: ${(e as Error).message}`;
+            const failedName =
+              (toolCall as { function?: { name?: string } }).function?.name ??
+              "unknown";
             actionsExecuted.push(
-              `⚠ Failed: ${toolCall.function.name} — ${(e as Error).message}`,
+              `⚠ Failed: ${failedName} — ${(e as Error).message}`,
             );
           }
 
           messages.push({
             role: "tool",
             tool_call_id: toolCall.id,
-            name: toolCall.function.name,
+            name: (toolCall as { id: string; function: { name: string } })
+              .function.name,
             content: toolResult,
-          } as any);
+          });
         }
 
         // Call OpenAI again to get the final summary
@@ -417,7 +399,7 @@ Rules:
         });
 
         replyText =
-          secondResponse.choices[0].message.content ??
+          secondResponse.choices[0]?.message?.content ??
           `I have successfully executed the following actions:\n${actionsExecuted.join("\n")}`;
       }
 
@@ -444,6 +426,9 @@ Rules:
           set: { messagesUsed: sql`${usage.messagesUsed} + 1` },
         });
 
+      // Invalidate dashboard cache since usage changed (fire and forget)
+      void invalidateDashboardCache(ctx.session.user.id);
+
       return {
         reply: replyText,
         actionsExecuted,
@@ -457,12 +442,14 @@ Rules:
       .from(agentMessages)
       .where(eq(agentMessages.userId, ctx.session.user.id))
       .orderBy(agentMessages.createdAt)
-      .limit(50); // Fetch the last 50 messages to maintain reasonable context
+      .limit(50);
 
     return history.map((h) => ({
       role: h.role,
       content: h.content,
-      actions: h.actionsJson ? JSON.parse(h.actionsJson) : undefined,
+      actions: h.actionsJson
+        ? (JSON.parse(h.actionsJson) as string[])
+        : undefined,
     }));
   }),
 });

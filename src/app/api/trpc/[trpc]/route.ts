@@ -15,6 +15,7 @@ const createContext = async (req: NextRequest) => {
   });
 };
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const handler = (req: NextRequest) =>
   fetchRequestHandler({
