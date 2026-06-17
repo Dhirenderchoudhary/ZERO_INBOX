@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  Github,
+  GitBranch,
   HardDrive,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -30,7 +30,7 @@ const createPrimaryNav = (dashboardHref: string) => [
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "AI Agent", href: "/agent", icon: Bot, badge: "AI" },
   { label: "Drive", href: "/drive", icon: HardDrive },
-  { label: "GitHub", href: "/github", icon: Github },
+  { label: "GitHub", href: "/github", icon: GitBranch },
 ];
 
 const workspaceNav = [
