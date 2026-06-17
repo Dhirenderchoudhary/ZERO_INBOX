@@ -1,123 +1,67 @@
-<div align="center">
-  <img src="public/corsair-logo.png" width="80" alt="Corsair Logo" />
-  <img src="public/chaicode-logo.png" width="80" alt="ChaiCode Logo" />
-  
-  <h1 style="margin-top: 20px;">ZERO INBOX</h1>
-  <p><b>Command every workflow from one inbox.</b></p>
-  
-  <p>
-    Built for the <b>Corsair x ChaiCode Hackathon</b> 🚀
-  </p>
+# Zero Inbox ⚡️
 
-  <p>
-    <a href="#features">Features</a> •
-    <a href="#tech-stack">Tech Stack</a> •
-    <a href="#getting-started">Getting Started</a> •
-    <a href="#how-it-works">How it Works</a>
-  </p>
-</div>
+> An AI-powered email and calendar management platform designed to help you hit Inbox Zero efficiently and effortlessly. Built with Next.js, tRPC, Upstash, and the Corsair integration framework.
 
----
+## Overview
 
-## 🌟 The Vision
+**Zero Inbox** goes beyond a traditional email client. It utilizes the power of OpenAI to read, summarize, and prioritize your emails via background cron jobs. Additionally, it gives you a dedicated AI Agent that can instantly chat with you to write drafts, read emails, and even schedule events on your Google Calendar natively.
 
-**ZERO INBOX** is a dynamic, AI-powered command center that replaces your chaotic inbox with a highly organized, actionable workspace.
+## Key Features
 
-Instead of drowning in newsletters and low-priority updates, Zero Inbox uses **OpenAI** and the **Corsair SDK** to actively triage your emails, draft replies, schedule calendar events, and manage your time—completely on autopilot.
+- 🤖 **AI Agentic Chat**: Control your inbox and calendar via an interactive AI assistant.
+- 📬 **Smart Background Triage**: New emails are analyzed by AI in the background to separate urgent messages from newsletters.
+- ⚡ **Realtime Sync**: Corsair Webhooks push instant updates to the frontend for seamless syncing.
+- 💵 **Pro Upgrades**: Razorpay integration to seamlessly upgrade from the Free tier to a premium messaging limit.
+- 🎙️ **Speech to Text**: Dictate emails easily with OpenAI Whisper integrations.
 
-## ✨ Features
+## Tech Stack
 
-- 🧠 **Live AI Triage**: Automatically categorizes incoming emails into _Urgent, Needs Reply, FYI, Newsletter,_ or _Standard_.
-- 🤖 **FlowMail Agent**: A conversational AI agent with native tool-calling capabilities. Ask it to "Schedule a meeting with Garry for Thursday" or "Email the team", and it executes the actions directly via the Corsair API.
-- ⚡ **Dynamic Dashboard**: Real-time KPI tracking for priority threads, automated meetings, and AI time saved.
-- 🎨 **Premium UI/UX**: Sleek, glassmorphic design built with Tailwind CSS, Framer Motion, and Next-Themes (Dark/Light mode support).
-- 🛡️ **Secure by Design**: OAuth-based least privilege scopes. You never hand over your raw passwords.
+- **Framework**: [Next.js 15 App Router](https://nextjs.org/)
+- **API & Type Safety**: [tRPC](https://trpc.io/)
+- **Database & ORM**: [Drizzle ORM](https://orm.drizzle.team/) + PostgreSQL
+- **Authentication**: [Better Auth](https://better-auth.com/) (Google SSO)
+- **Background Jobs & Redis**: [Upstash](https://upstash.com/) (Redis, QStash, Workflow, Ratelimit)
+- **Integrations**: [Corsair Framework](https://corsair.dev) (Gmail, Google Calendar)
+- **AI**: [OpenAI](https://openai.com/) (GPT-4o, Whisper)
+- **Payments**: [Razorpay](https://razorpay.com/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + Shadcn UI
 
-## 🛠️ Tech Stack
+## Documentation
 
-This project was bootstrapped with the `create-t3-app` and heavily leverages the Corsair unified API.
+For deep dives into the platform, check out the documentation:
 
-- **Framework**: [Next.js 14](https://nextjs.org) (App Router)
-- **API/Types**: [tRPC](https://trpc.io/) & [Zod](https://zod.dev/)
-- **Database**: [Turso](https://turso.tech/) (SQLite) & [Drizzle ORM](https://orm.drizzle.team/)
-- **Authentication**: [Better-Auth](https://better-auth.com/) & [Corsair SDK](https://corsair.dev)
-- **Integrations**: [Corsair SDK](https://corsair.dev/) (Gmail & Google Calendar)
-- **AI/LLMs**: [OpenAI](https://openai.com/) (GPT-4o & GPT-4o-mini)
-- **Rate Limiting**: [Upstash Redis](https://upstash.com/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com) & [shadcn/ui](https://ui.shadcn.com/)
-- **Deployment**: [Vercel](https://vercel.com/)
+1. [**Architecture**](./docs/ARCHITECTURE.md): Learn how the background jobs, webhooks, and AI agent integrate.
+2. [**Local Setup**](./docs/SETUP.md): Get the project running locally step-by-step.
+3. [**Core Features**](./docs/FEATURES.md): Detailed explanations of the AI Triage, Agent tool calling, and Payments.
+4. **API Reference**: Automatically generated Scalar OpenAPI docs available locally at `/reference`.
 
-## 🔗 Important Links
+## Quick Start
 
-- 🚀 **Live Demo**: [https://zero-inbox-dhirender.vercel.app](https://zero-inbox-dhirender.vercel.app) _(Replace with actual Vercel URL)_
-- 💻 **GitHub Repository**: [https://github.com/Dhirenderchoudhary/ZERO_INBOX](https://github.com/Dhirenderchoudhary/ZERO_INBOX)
-- ⚙️ **Corsair API**: [https://corsair.dev](https://corsair.dev)
-- ☕ **ChaiCode**: [https://chaicode.com](https://chaicode.com)
-
-## 🚀 Getting Started
-
-To run this project locally, follow these steps:
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Dhirenderchoudhary/ZERO_INBOX.git
-cd ZERO_INBOX
-```
-
-### 2. Install dependencies
-
-```bash
-pnpm install
-```
-
-### 3. Set up environment variables
-
-Create a `.env` file in the root directory and add the following keys:
-
-```env
-# Database
-DATABASE_URL="libsql://your-turso-db-url"
-DATABASE_AUTH_TOKEN="your-turso-auth-token"
-
-# Better Auth
-BETTER_AUTH_SECRET="super-secret-key"
-BETTER_AUTH_URL="http://localhost:3000"
-
-# Corsair SDK
-CORSAIR_KEK="your-corsair-key-encryption-key"
-TENANT_ID="your-corsair-tenant-id"
-
-# AI & Rate Limiting
-OPENAI_API_KEY="sk-..."
-UPSTASH_REDIS_REST_URL="https://..."
-UPSTASH_REDIS_REST_TOKEN="..."
-```
-
-### 4. Push Database Schema
-
-```bash
-pnpm db:push
-```
-
-### 5. Start the development server
-
-```bash
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## 🧠 How it Works
-
-1. **Authentication**: Users log in and connect their Google Account via the Corsair Connect UI.
-2. **Syncing**: Corsair seamlessly syncs Gmail and Google Calendar data into a local SQLite database cache.
-3. **Triaging**: Our tRPC API triggers an OpenAI `gpt-4o-mini` prompt to evaluate and tag all unsorted emails.
-4. **Execution**: The user interacts with the FlowMail Agent, which utilizes OpenAI Function Calling to trigger `send_email` and `create_event` functions. These functions natively execute Corsair API methods to dispatch real emails and calendar invites.
+1. Clone the repository and install dependencies using `pnpm install`.
+2. Copy `.env.example` to `.env` and fill in your keys (Database, OpenAI, Upstash, Better Auth, Corsair, Razorpay).
+3. Push the database schema: `pnpm db:push`.
+4. Start the development server: `pnpm dev`.
 
 ---
 
-<div align="center">
-  <p>Built with ❤️ by <a href="https://github.com/Dhirenderchoudhary">Dhirender Choudhary</a></p>
-  <p><b>Builder Mode On</b> | MacBook Giveaway Hackathon</p>
-</div>
+## Hackathon Submission Details
+
+**Builder Mode On | MacBook Giveaway Hackathon**
+
+### Corsair Features Used:
+
+- **Gmail Integration**: Deep integration to fetch, read, parse, and send emails via the `@corsair-dev/gmail` SDK.
+- **Google Calendar Integration**: Native integration to fetch and create calendar events via the `@corsair-dev/googlecalendar` SDK.
+- **Realtime Webhooks**: Implemented `/api/webhooks/corsair` to listen for `message.created` push notifications from Google Cloud natively, bypassing the need for manual polling.
+- **Token Management**: Utilized Corsair's seamless background token refreshing so users never experience expired OAuth sessions.
+
+### Bonus Tasks Attempted & Completed:
+
+1. ✅ **Agent Chat**: Built a dedicated conversational UI where users can chat with an AI that autonomously calls Corsair tools to send emails and create calendar invites.
+2. ✅ **Realtime Webhooks**: Fully wired up Corsair Push Notifications to sync the inbox instantly.
+3. ✅ **Automatic Email Filtering**: Created a robust background job using Upstash QStash and `gpt-4o-mini` to automatically triage and categorize incoming emails into priority buckets (urgent, fyi, newsletter).
+4. ✅ **Keyboard Shortcuts**: Integrated `react-hotkeys-hook` to allow power users to navigate the app and trigger common actions entirely via their keyboard.
+
+---
+
+_Created by Dhirender Choudhary for the Corsair Hackathon._

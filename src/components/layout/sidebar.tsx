@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  Github,
+  HardDrive,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,8 @@ const createPrimaryNav = (dashboardHref: string) => [
   { label: "Inbox", href: "/inbox", icon: Inbox },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "AI Agent", href: "/agent", icon: Bot, badge: "AI" },
+  { label: "Drive", href: "/drive", icon: HardDrive },
+  { label: "GitHub", href: "/github", icon: Github },
 ];
 
 const workspaceNav = [

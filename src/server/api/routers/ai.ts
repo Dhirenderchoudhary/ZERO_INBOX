@@ -299,6 +299,52 @@ Rules:
               },
             },
           },
+          {
+            type: "function",
+            function: {
+              name: "search_drive",
+              description: "Search for a file in Google Drive",
+              parameters: {
+                type: "object",
+                properties: {
+                  query: { type: "string", description: "Search query" },
+                },
+                required: ["query"],
+              },
+            },
+          },
+          {
+            type: "function",
+            function: {
+              name: "list_github_issues",
+              description: "List issues in a GitHub repository",
+              parameters: {
+                type: "object",
+                properties: {
+                  owner: { type: "string" },
+                  repo: { type: "string" },
+                },
+                required: ["owner", "repo"],
+              },
+            },
+          },
+          {
+            type: "function",
+            function: {
+              name: "create_github_issue",
+              description: "Create a GitHub issue",
+              parameters: {
+                type: "object",
+                properties: {
+                  owner: { type: "string" },
+                  repo: { type: "string" },
+                  title: { type: "string" },
+                  body: { type: "string" },
+                },
+                required: ["owner", "repo", "title", "body"],
+              },
+            },
+          },
         ],
       });
 
@@ -372,6 +418,39 @@ Rules:
               });
               actionsExecuted.push(
                 `Created "${typeof args.summary === "string" ? args.summary : ""}" with ${attendeeEmails.length} attendee(s)`,
+              );
+            } else if (tc.function.name === "search_drive") {
+              const query = typeof args.query === "string" ? args.query : "";
+              const response = await tenant.googledrive.api.files.list({
+                q: `name contains '${query}'`,
+              });
+              toolResult = JSON.stringify(response.files);
+              actionsExecuted.push(`Searched Google Drive for "${query}"`);
+            } else if (tc.function.name === "list_github_issues") {
+              const owner = typeof args.owner === "string" ? args.owner : "";
+              const repo = typeof args.repo === "string" ? args.repo : "";
+              const issues = await tenant.github.api.issues.list({
+                owner,
+                repo,
+              });
+              toolResult = JSON.stringify(
+                issues.map((i) => ({ title: i.title, state: i.state })),
+              );
+              actionsExecuted.push(`Fetched issues for ${owner}/${repo}`);
+            } else if (tc.function.name === "create_github_issue") {
+              const owner = typeof args.owner === "string" ? args.owner : "";
+              const repo = typeof args.repo === "string" ? args.repo : "";
+              const title = typeof args.title === "string" ? args.title : "";
+              const body = typeof args.body === "string" ? args.body : "";
+              const issue = await tenant.github.api.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+              });
+              toolResult = `Created issue #${issue.number}`;
+              actionsExecuted.push(
+                `Created GitHub issue "${title}" in ${owner}/${repo}`,
               );
             }
           } catch (e) {

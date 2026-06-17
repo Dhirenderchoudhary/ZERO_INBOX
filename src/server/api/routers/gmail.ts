@@ -57,7 +57,32 @@ export const gmailRouter = createTRPCRouter({
     .input(ListWithTriageSchema)
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
-      const raw = await tenant.gmail.db.messages.list({ limit: 200 });
+      let raw = await tenant.gmail.db.messages.list({ limit: 200 });
+
+      // Fallback: If DB is empty (e.g. first login), synchronously fetch a quick batch to prevent bad UX
+      if (raw.length === 0) {
+        try {
+          const response = await tenant.gmail.api.messages.list({
+            maxResults: 15,
+          });
+          const liveMessages = response.messages ?? [];
+          const fetched = [];
+          for (const msg of liveMessages) {
+            if (!msg.id) continue;
+            const full = await tenant.gmail.api.messages.get({
+              id: msg.id,
+              format: "metadata",
+            });
+            fetched.push(full);
+            // Fire and forget upsert so it doesn't block the return
+            void tenant.gmail.db.messages.upsertByEntityId(msg.id, full);
+          }
+          raw = fetched as any;
+        } catch (error) {
+          console.error("Fallback sync failed", error);
+        }
+      }
+
       const messages = dedupeAndSort(raw) as Record<string, unknown>[];
       const entityIds = messages.map((m) => m.entity_id as string);
 
