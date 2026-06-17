@@ -31,7 +31,9 @@ import {
 } from "../../lib/cache";
 import { triggerBackgroundTriage } from "../../lib/qstash";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "dummy_key_for_build",
+});
 
 let ratelimit: Ratelimit | null = null;
 if (
