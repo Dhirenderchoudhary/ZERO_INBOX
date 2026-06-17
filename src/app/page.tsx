@@ -24,14 +24,6 @@ import { signIn } from "@/lib/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  FeaturesSection,
-  WorkflowsSection,
-  TestimonialsSection,
-  PricingSection,
-  FAQSection,
-  Footer,
-} from "@/components/landing/sections";
 
 const liveThreads = [
   {
@@ -360,12 +352,6 @@ export default function LandingPage() {
           <DashboardShowcase />
         </section>
 
-        <FeaturesSection />
-        <WorkflowsSection />
-        <TestimonialsSection />
-        <PricingSection />
-        <FAQSection />
-
         <footer className="mt-20 border-t border-black/10 dark:border-white/10">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 sm:px-6 md:flex-row lg:px-8">
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -388,7 +374,6 @@ export default function LandingPage() {
           </div>
         </footer>
       </main>
-      <Footer />
     </div>
   );
 }
