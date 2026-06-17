@@ -4,7 +4,10 @@ import { env } from "@/env";
 import { sentinelClient } from "@better-auth/infra/client";
 
 export const authClient = createAuthClient({
-  baseURL: env.NEXT_PUBLIC_APP_URL,
+  baseURL:
+    typeof window !== "undefined"
+      ? window.location.origin
+      : env.NEXT_PUBLIC_APP_URL,
   plugins: [sentinelClient()],
 });
 
