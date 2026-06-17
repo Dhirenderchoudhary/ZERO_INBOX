@@ -5,7 +5,7 @@ import { addDays } from "date-fns";
 
 export const calendarRouter = createTRPCRouter({
   getWeekEvents: protectedProcedure
-    .input(z.object({ weekStart: z.string() }))
+    .input(z.object({ weekStart: z.string().datetime() }))
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       const start = new Date(input.weekStart);
@@ -39,12 +39,12 @@ export const calendarRouter = createTRPCRouter({
   createEvent: protectedProcedure
     .input(
       z.object({
-        summary: z.string(),
-        description: z.string().optional(),
-        startTime: z.string(),
-        endTime: z.string(),
-        attendees: z.array(z.string()).default([]),
-        location: z.string().optional(),
+        summary: z.string().trim().min(1).max(200),
+        description: z.string().trim().max(5000).optional(),
+        startTime: z.string().datetime(),
+        endTime: z.string().datetime(),
+        attendees: z.array(z.string().trim().email()).max(50).default([]),
+        location: z.string().trim().max(200).optional(),
         sendInvites: z.boolean().default(true),
       }),
     )
@@ -65,7 +65,7 @@ export const calendarRouter = createTRPCRouter({
     }),
 
   searchEvents: protectedProcedure
-    .input(z.object({ query: z.string() }))
+    .input(z.object({ query: z.string().trim().min(1).max(100) }))
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       return tenant.googlecalendar.db.events.search({

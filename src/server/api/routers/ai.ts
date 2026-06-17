@@ -35,10 +35,10 @@ export const aiRouter = createTRPCRouter({
   triageOne: protectedProcedure
     .input(
       z.object({
-        entityId: z.string(),
-        subject: z.string(),
-        snippet: z.string(),
-        from: z.string(),
+        entityId: z.string().trim().min(1).max(255),
+        subject: z.string().trim().max(1000),
+        snippet: z.string().trim().max(5000),
+        from: z.string().trim().max(255),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -144,7 +144,11 @@ Respond with ONLY the category word. Nothing else.`,
 
   summarize: protectedProcedure
     .input(
-      z.object({ subject: z.string(), body: z.string(), from: z.string() }),
+      z.object({
+        subject: z.string().trim().max(1000),
+        body: z.string().trim().max(10000),
+        from: z.string().trim().max(255),
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const msg = await openai.chat.completions.create({
@@ -168,7 +172,11 @@ Respond with ONLY the category word. Nothing else.`,
 
   draftReply: protectedProcedure
     .input(
-      z.object({ subject: z.string(), body: z.string(), from: z.string() }),
+      z.object({
+        subject: z.string().trim().max(1000),
+        body: z.string().trim().max(10000),
+        from: z.string().trim().max(255),
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const msg = await openai.chat.completions.create({
@@ -193,12 +201,12 @@ Respond with ONLY the category word. Nothing else.`,
   agentChat: protectedProcedure
     .input(
       z.object({
-        message: z.string(),
+        message: z.string().trim().min(1).max(2000),
         history: z
           .array(
             z.object({
               role: z.enum(["user", "assistant"]),
-              content: z.string(),
+              content: z.string().trim().max(2000),
             }),
           )
           .default([]),

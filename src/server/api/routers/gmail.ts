@@ -23,7 +23,7 @@ export const gmailRouter = createTRPCRouter({
   listWithTriage: protectedProcedure
     .input(
       z.object({
-        limit: z.number().min(1).max(100).default(50),
+        limit: z.number().int().min(1).max(100).default(50),
         priority: z
           .enum([
             "all",
@@ -74,8 +74,8 @@ export const gmailRouter = createTRPCRouter({
   search: protectedProcedure
     .input(
       z.object({
-        query: z.string().min(1),
-        limit: z.number().min(1).max(50).default(30),
+        query: z.string().trim().min(1).max(200),
+        limit: z.number().int().min(1).max(50).default(30),
       }),
     )
     .query(async ({ input, ctx }) => {
@@ -88,7 +88,7 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   getOne: protectedProcedure
-    .input(z.object({ entityId: z.string().min(1) }))
+    .input(z.object({ entityId: z.string().trim().min(1).max(255) }))
     .query(async ({ input, ctx }) => {
       // 1. Check custom Zero Inbox cache
       const customCache = await db.query.cachedEmails.findFirst({
@@ -171,10 +171,10 @@ export const gmailRouter = createTRPCRouter({
   send: protectedProcedure
     .input(
       z.object({
-        to: z.string().email("Invalid email address"),
-        subject: z.string().min(1, "Subject is required"),
-        body: z.string().min(1, "Body is required"),
-        cc: z.string().optional(),
+        to: z.string().trim().email("Invalid email address"),
+        subject: z.string().trim().min(1, "Subject is required").max(255),
+        body: z.string().trim().min(1, "Body is required").max(10000),
+        cc: z.string().trim().email("Invalid cc email address").optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -186,9 +186,9 @@ export const gmailRouter = createTRPCRouter({
   saveDraft: protectedProcedure
     .input(
       z.object({
-        to: z.string(),
-        subject: z.string(),
-        body: z.string(),
+        to: z.string().trim().email().optional().or(z.literal("")),
+        subject: z.string().trim().max(255).optional(),
+        body: z.string().trim().max(10000).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -200,10 +200,10 @@ export const gmailRouter = createTRPCRouter({
   scheduleSend: protectedProcedure
     .input(
       z.object({
-        to: z.string().email(),
-        subject: z.string().min(1),
-        body: z.string().min(1),
-        cc: z.string().optional(),
+        to: z.string().trim().email(),
+        subject: z.string().trim().min(1).max(255),
+        body: z.string().trim().min(1).max(10000),
+        cc: z.string().trim().email().optional(),
         sendAt: z.string().datetime(),
       }),
     )
@@ -223,7 +223,7 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   markRead: protectedProcedure
-    .input(z.object({ entityId: z.string() }))
+    .input(z.object({ entityId: z.string().trim().min(1).max(255) }))
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       let syncedToGmail = true;
@@ -256,7 +256,7 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   archive: protectedProcedure
-    .input(z.object({ entityId: z.string() }))
+    .input(z.object({ entityId: z.string().trim().min(1).max(255) }))
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       await tenant.gmail.api.messages.modify({
@@ -273,7 +273,12 @@ export const gmailRouter = createTRPCRouter({
     }),
 
   toggleStar: protectedProcedure
-    .input(z.object({ entityId: z.string(), starred: z.boolean() }))
+    .input(
+      z.object({
+        entityId: z.string().trim().min(1).max(255),
+        starred: z.boolean(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
       await tenant.gmail.api.messages.modify({
@@ -294,7 +299,7 @@ export const gmailRouter = createTRPCRouter({
   snooze: protectedProcedure
     .input(
       z.object({
-        entityId: z.string(),
+        entityId: z.string().trim().min(1).max(255),
         snoozeUntil: z.string().datetime(),
       }),
     )
