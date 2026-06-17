@@ -78,5 +78,6 @@ async function handler(req: Request) {
   }
 }
 
-// verifySignatureAppRouter wraps the handler with QStash signature verification
-export const POST = verifySignatureAppRouter(handler);
+export const POST = process.env.QSTASH_CURRENT_SIGNING_KEY
+  ? verifySignatureAppRouter(handler)
+  : handler;
