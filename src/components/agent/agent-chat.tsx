@@ -139,24 +139,13 @@ export function AgentChat() {
         <div className="border-border/70 border-b px-5 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="mb-1 flex items-center gap-2">
-                <Badge variant="outline" className="rounded-full py-0">
-                  <Sparkles size={11} className="mr-1" /> AI operator
-                </Badge>
-                <h2 className="text-lg font-semibold tracking-tight">
-                  What should ZERO INBOX do?
-                </h2>
-              </div>
-              <p className="text-muted-foreground text-xs">
+              <h2 className="text-foreground text-xl font-semibold tracking-tight">
+                What should ZERO INBOX do?
+              </h2>
+              <p className="text-muted-foreground mt-1 text-sm">
                 Control email and calendar workflows with natural language.
               </p>
             </div>
-            <Badge
-              variant="secondary"
-              className="w-fit rounded-full py-0 text-xs"
-            >
-              OpenAI + Corsair
-            </Badge>
           </div>
         </div>
 
@@ -173,13 +162,14 @@ export function AgentChat() {
                 Ask the agent to summarize, draft, schedule, triage, or execute
                 routine communication tasks.
               </p>
-              <div className="mt-6 grid w-full max-w-2xl gap-2 sm:grid-cols-2">
+              <div className="mt-8 flex w-full max-w-3xl flex-wrap justify-center gap-3">
                 {suggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     onClick={() => submit(suggestion)}
-                    className="border-border/70 bg-background/70 hover:bg-muted rounded-xl border p-3 text-left text-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    className="border-border/50 bg-muted/30 hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm transition-all hover:scale-105 active:scale-95"
                   >
+                    <Sparkles size={14} className="opacity-70" />
                     {suggestion}
                   </button>
                 ))}
@@ -284,7 +274,7 @@ export function AgentChat() {
                 }
               }}
               placeholder="Tell the agent what outcome you want..."
-              className="placeholder:text-muted-foreground max-h-32 min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none"
+              className="placeholder:text-muted-foreground max-h-32 min-h-10 flex-1 resize-none border-0 bg-transparent px-3 py-2 text-sm outline-none focus:ring-0"
               rows={1}
             />
             <Button

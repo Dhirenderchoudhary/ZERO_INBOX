@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { CommandPalette } from "./command-palette";
+import { ShortcutsModal } from "./shortcuts-modal";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -60,7 +61,7 @@ export function AppShell({
   }, [pathname]);
 
   return (
-    <div className="app-surface bg-background text-foreground flex h-screen overflow-hidden">
+    <div className="app-surface bg-bg-app text-foreground flex h-screen overflow-hidden">
       <div className="hidden shrink-0 lg:block">
         <Sidebar
           collapsed={collapsed}
@@ -99,17 +100,6 @@ export function AppShell({
             <Menu size={18} />
             <span className="sr-only">Open navigation</span>
           </Button>
-          {collapsed && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden lg:inline-flex"
-              onClick={() => setCollapsed(false)}
-            >
-              <PanelLeftOpen size={18} />
-              <span className="sr-only">Expand sidebar</span>
-            </Button>
-          )}
 
           <div className="min-w-0 flex-1">
             <div className="text-muted-foreground flex items-center gap-1 text-xs">
@@ -140,17 +130,7 @@ export function AppShell({
             <ShieldCheck size={12} /> Secure
           </Badge>
           <ThemeToggle />
-          <Link
-            href="/notifications"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "icon" }),
-              "text-muted-foreground hover:text-foreground relative",
-            )}
-          >
-            <Bell size={17} />
-            <span className="ring-background absolute top-2 right-2 size-2 rounded-full bg-blue-500 ring-2" />
-            <span className="sr-only">Notifications</span>
-          </Link>
+
           <Link
             href="/settings"
             className={cn(
@@ -175,6 +155,7 @@ export function AppShell({
       </div>
 
       <CommandPalette />
+      <ShortcutsModal />
       <GlobalCompose />
       <ToastProvider />
     </div>

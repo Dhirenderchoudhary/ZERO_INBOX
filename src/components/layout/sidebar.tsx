@@ -18,6 +18,7 @@ import {
   Star,
   GitBranch,
   HardDrive,
+  Command,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +71,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "bg-sidebar text-sidebar-foreground border-sidebar-border flex h-full shrink-0 flex-col border-r transition-[width] duration-300",
+        "bg-bg-surface text-sidebar-foreground border-border-subtle flex h-full shrink-0 flex-col border-r transition-[width] duration-300",
         collapsed ? "w-[84px]" : "w-[280px]",
       )}
     >
@@ -164,34 +165,25 @@ export function Sidebar({
         )}
       </div>
 
-      <div className="border-sidebar-border mt-auto border-t p-3">
-        <div
+      <div className="border-sidebar-border mt-auto space-y-1 border-t p-3">
+        <Button
+          variant="ghost"
           className={cn(
-            "border-sidebar-border bg-sidebar-accent/60 rounded-xl border p-3",
-            collapsed && "flex justify-center p-2",
+            "text-muted-foreground group hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full justify-start rounded-xl",
+            collapsed && "justify-center",
           )}
+          onClick={() =>
+            window.dispatchEvent(new CustomEvent("open-shortcuts"))
+          }
         >
-          {collapsed ? (
-            <Sparkles size={16} className="text-muted-foreground" />
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg">
-                  <Sparkles size={16} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">AI automation</p>
-                  <p className="text-muted-foreground text-xs">
-                    94% confidence
-                  </p>
-                </div>
-              </div>
-              <div className="bg-muted h-1.5 rounded-full">
-                <div className="bg-primary h-full w-[72%] rounded-full" />
-              </div>
-            </div>
+          <Command size={16} />
+          {!collapsed && <span className="ml-3">Shortcuts</span>}
+          {!collapsed && (
+            <span className="bg-sidebar-accent border-sidebar-border text-muted-foreground group-hover:bg-background ml-auto rounded border px-1.5 py-0.5 font-mono text-[10px] tracking-widest shadow-sm transition-colors">
+              ⌘K
+            </span>
           )}
-        </div>
+        </Button>
         {!collapsed && (
           <Button
             variant="ghost"

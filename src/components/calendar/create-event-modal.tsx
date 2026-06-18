@@ -18,8 +18,13 @@ export function CreateEventModal({ onClose }: { onClose: () => void }) {
   );
   const [attendees, setAttendees] = useState("");
 
+  const utils = api.useUtils();
+
   const create = api.calendar.createEvent.useMutation({
-    onSuccess: () => onClose(),
+    onSuccess: () => {
+      void utils.calendar.getEventsRange.invalidate();
+      onClose();
+    },
   });
 
   return (

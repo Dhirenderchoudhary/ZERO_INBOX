@@ -110,9 +110,20 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     setIsSigningIn(true);
-    signIn.social({ provider: "google", callbackURL: "/dashboard" });
+    try {
+      const res = await signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
+      });
+      if (res?.error) {
+        setIsSigningIn(false);
+        console.error("Sign-in error:", res.error);
+      }
+    } catch (e) {
+      setIsSigningIn(false);
+    }
   };
 
   return (
@@ -161,12 +172,6 @@ export default function LandingPage() {
               className="transition-colors hover:text-neutral-950 dark:hover:text-white"
             >
               Docs
-            </a>
-            <a
-              href="#demo"
-              className="transition-colors hover:text-neutral-950 dark:hover:text-white"
-            >
-              Demo
             </a>
             <a
               href="/pricing"
@@ -229,7 +234,7 @@ export default function LandingPage() {
           delay="0.5s"
         />
         <FloatingTechIcon
-          src="/corsair-logo.png"
+          src="/zero-inbox-logo-120.png"
           className="top-[50%] right-[4%]"
           delay="2s"
         />
@@ -272,8 +277,8 @@ export default function LandingPage() {
             <div className="flex items-center gap-3 sm:pl-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/corsair-logo.png"
-                alt="Corsair Logo"
+                src="/zero-inbox-logo-120.png"
+                alt="ZERO INBOX Logo"
                 className="size-10 object-contain drop-shadow-sm"
               />
               <div>
@@ -281,7 +286,7 @@ export default function LandingPage() {
                   Powered by
                 </p>
                 <p className="text-lg leading-none font-semibold text-neutral-950 dark:text-white">
-                  Corsair
+                  ZERO INBOX
                 </p>
               </div>
             </div>

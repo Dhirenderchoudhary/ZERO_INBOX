@@ -29,7 +29,7 @@ export default function DrivePage() {
             Google Drive
           </h1>
           <p className="text-muted-foreground text-sm">
-            Recent files connected via Corsair
+            Recent files connected via ZERO INBOX
           </p>
         </div>
       </div>

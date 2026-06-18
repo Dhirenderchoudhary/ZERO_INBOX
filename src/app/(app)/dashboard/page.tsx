@@ -134,6 +134,14 @@ export default function DashboardPage() {
                 >
                   <Bot size={16} /> Ask agent
                 </Button>
+                <Button
+                  className="rounded-xl bg-amber-500 text-white shadow-md transition-all hover:bg-amber-600 hover:shadow-lg"
+                  onClick={() => {
+                    router.push("/dashboard/billing");
+                  }}
+                >
+                  Upgrade to Pro
+                </Button>
               </div>
             </div>
           </div>
@@ -223,15 +231,14 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-2 pt-2">
                 <p className="text-muted-foreground mb-2 text-xs">
-                  Instantly send an invite using Corsair API
+                  Instantly send an invite using ZERO INBOX API
                 </p>
                 <Button
                   size="sm"
                   className="w-full text-xs"
                   onClick={() => {
                     const subject = prompt("Meeting Title:");
-                    if (subject)
-                      toast.success("Calendar invite sent via Corsair!");
+                    if (subject) toast.success("Calendar invite sent!");
                   }}
                 >
                   <Plus className="mr-2 h-3 w-3" /> New Meeting

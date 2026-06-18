@@ -33,7 +33,7 @@ export default function GithubPage() {
             GitHub Repositories
           </h1>
           <p className="text-muted-foreground text-sm">
-            Your connected GitHub repositories via Corsair
+            Your connected GitHub repositories
           </p>
         </div>
       </div>

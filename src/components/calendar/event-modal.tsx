@@ -23,8 +23,11 @@ export function EventModal({
   const [location, setLocation] = useState("");
   const [sendInvites, setSendInvites] = useState(true);
 
+  const utils = api.useUtils();
+
   const createEvent = api.calendar.createEvent.useMutation({
     onSuccess: () => {
+      void utils.calendar.getEventsRange.invalidate();
       onClose();
     },
   });

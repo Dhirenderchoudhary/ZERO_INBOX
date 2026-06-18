@@ -49,6 +49,8 @@ export const auth = betterAuth({
     "https://www.zeroinbox.fun",
     "https://corsair.vercel.app",
     "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3000",
   ],
   rateLimit: {
     window: 60,

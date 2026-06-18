@@ -123,7 +123,7 @@ export function CommandPalette() {
                   placeholder="What do you need?"
                   value={search}
                   onValueChange={setSearch}
-                  className="placeholder:text-muted-foreground/60 flex h-14 w-full bg-transparent py-3 text-[15px] font-medium outline-none"
+                  className="placeholder:text-muted-foreground/60 flex h-14 w-full border-0 bg-transparent py-3 text-[15px] font-medium outline-none focus:ring-0"
                 />
                 <div className="text-muted-foreground/50 hidden text-[10px] font-bold tracking-wider sm:block">
                   ESC

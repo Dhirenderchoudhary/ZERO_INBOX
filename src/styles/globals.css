@@ -41,6 +41,18 @@
   --reply: #3b82f6;
   --fyi: #8b5cf6;
   --newsletter: #71717a;
+
+  /* ZERO INBOX Theme Extensions */
+  --bg-app: #f8f9fb;
+  --bg-base: #ffffff;
+  --bg-surface: #f3f4f6;
+  --bg-elevated: #ffffff;
+  --bg-overlay: #f0f1f3;
+  --bg-highlight: #ebf3ff;
+
+  --border-subtle: #ebedf0;
+  --border-default: #d1d5db;
+  --border-strong: #9ca3af;
 }
 
 .dark {
@@ -77,6 +89,18 @@
   --reply: #3b82f6;
   --fyi: #a855f7;
   --newsletter: #a1a1aa;
+
+  /* ZERO INBOX Theme Extensions */
+  --bg-app: #0c0d0f;
+  --bg-base: #111316;
+  --bg-surface: #181b1f;
+  --bg-elevated: #1f2226;
+  --bg-overlay: #252a30;
+  --bg-highlight: #2a2f38;
+
+  --border-subtle: #1e2228;
+  --border-default: #272c34;
+  --border-strong: #363d47;
 }
 
 @theme inline {
@@ -113,6 +137,17 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+
+  --color-bg-app: var(--bg-app);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-overlay: var(--bg-overlay);
+  --color-bg-highlight: var(--bg-highlight);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
 }
 
 @layer base {
@@ -154,7 +189,7 @@
   }
 
   .glass-panel {
-    @apply border-border bg-card rounded-xl border shadow-sm transition-all duration-300;
+    @apply border-border bg-bg-elevated rounded-xl border shadow-sm transition-all duration-300;
   }
 
   .glass-panel:hover {

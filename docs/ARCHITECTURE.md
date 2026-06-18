@@ -1,68 +1,58 @@
-# Zero Inbox Architecture
+# ZERO INBOX Backend Architecture
 
-Zero Inbox is designed as a modern, decoupled monolithic application. It heavily leverages serverless patterns and robust background queueing to handle compute-intensive AI operations and network-heavy email fetching without degrading the user experience.
+ZERO INBOX utilizes a robust, type-safe backend architecture powered by **tRPC** and **Zod**. This document outlines the core patterns and rules for backend development.
 
-## High-Level Flow
+## 1. The tRPC Philosophy
 
-1. **Frontend**: Next.js App Router (React Server Components + Client Components).
-2. **API Layer**: tRPC acts as the strict, end-to-end typed connective tissue between the React frontend and the Node backend.
-3. **Database**: Drizzle ORM queries a PostgreSQL database.
-4. **Third-Party Integrations**: The `corsair` framework provides standardized data fetching, native OAuth tokens, and real-time webhooks for Gmail and Google Calendar.
+We use tRPC to provide end-to-end typesafety without code generation. The frontend directly imports the inferred types from the backend router.
 
----
+### `trpc.ts` Base Configuration
 
-## 1. Authentication & OAuth (Better Auth + Corsair)
+All routers and procedures originate from `src/server/api/trpc.ts`.
 
-Handling OAuth for Google APIs can be notoriously difficult due to token refreshes and scopes. Zero Inbox solves this using a two-pronged approach:
+- `publicProcedure`: Open to the world.
+- `protectedProcedure`: Requires an authenticated session via Better Auth. Throws `UNAUTHORIZED` if no session is present.
+- `timingMiddleware`: Automatically logs request duration, path, and user ID.
 
-- **Better Auth**: Manages the core application session, JWTs, and database `users`/`sessions` records. It acts as the primary login provider using Google SSO.
-- **Corsair Framework**: Instead of manually passing tokens, we use `@corsair-dev/gmail` and `@corsair-dev/googlecalendar`. Corsair handles encrypting the user's refresh tokens inside the database (using `CORSAIR_KEK`) and automatically refreshes them whenever a Google API request is made.
+## 2. Zod Validation (The Strict Pattern)
 
----
+Every single endpoint must rigorously validate its input using `z.object({...})`.
 
-## 2. Background Processing (Upstash QStash & Workflows)
+**Rule: No raw inputs.** If a procedure takes an input, it must be validated by a schema defined in `src/lib/schemas.ts`.
 
-Zero Inbox relies heavily on **Upstash** for asynchronous tasks to prevent Vercel Serverless Function timeouts (which typically occur after 10-15 seconds on free tiers).
+Example:
 
-### Email Scheduling
+```typescript
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { DraftReplySchema } from "../../lib/schemas";
 
-When a user schedules an email to be sent later:
+export const aiRouter = createTRPCRouter({
+  draftReply: protectedProcedure
+    .input(DraftReplySchema)
+    .mutation(async ({ input, ctx }) => {
+      // input.from and input.subject are fully typed and sanitized
+    }),
+});
+```
 
-1. We save a `scheduledEmails` row in the database.
-2. We publish a JSON payload to **Upstash QStash** with a `delay` parameter.
-3. QStash holds the message. At the exact delayed time, it fires a POST request to `/api/qstash/send-email`.
-4. The webhook verifies the QStash signature, grabs the user's Corsair token, and dispatches the email via Gmail APIs.
+## 3. Modular Routers
 
-### Background Triage
+We do not use monolithic controllers. Each domain has its own router:
 
-When a user wants to triage their entire inbox, doing so synchronously via OpenAI would take minutes.
+- `ai.ts`: AI-powered triage and summarization (GPT-4o-mini).
+- `calendar.ts`: Google Calendar fetching and event creation.
+- `gmail.ts`: Email synchronization, sending, and triaging.
+- `github.ts`: GitHub repository fetching.
 
-1. The tRPC mutation triggers an **Upstash Workflow**.
-2. The Workflow processes the inbox in batches using durable execution.
-3. If OpenAI rate limits or fails, Upstash automatically retries the specific failed step without restarting the entire inbox sync.
+These are all merged into the `appRouter` inside `src/server/api/root.ts`.
 
----
+## 4. Error Handling
 
-## 3. The AI Agent (`/api/trpc/ai.agentChat`)
+- Never throw generic `Error` objects from TRPC routes.
+- Always use `TRPCError` with appropriate HTTP status codes (e.g., `BAD_REQUEST`, `NOT_FOUND`, `INTERNAL_SERVER_ERROR`).
+- Let the `errorFormatter` in `trpc.ts` handle sending flattened Zod errors to the client.
 
-The heart of Zero Inbox is the Agentic Chat. It uses **OpenAI native function calling** to give the LLM control over the user's data.
+## 5. Caching Strategy
 
-**The Feedback Loop:**
-
-1. User sends a message ("Read my latest emails and summarize them").
-2. The Node backend injects a heavy system prompt enforcing Indian Standard Time (IST) and strict conversational rules.
-3. OpenAI responds with a `tool_call` requesting to execute the `fetch_recent_emails` tool.
-4. The backend executes the Corsair query, grabs the emails, and pushes the result back into the OpenAI messages array as a `tool` role.
-5. OpenAI analyzes the raw email data and responds with a beautiful markdown summary for the user.
-6. The entire conversation, including invisible tool outputs, is saved to `agentMessages` in Postgres to preserve context.
-
----
-
-## 4. Real-time Webhooks
-
-To keep the UI snappy, we utilize `Corsair` webhooks.
-Whenever an email is received natively in the user's actual Gmail inbox:
-
-1. Google sends a push notification to Corsair.
-2. Corsair forwards a standardized `message.created` payload to `/api/webhooks/corsair`.
-3. The webhook caches the new data and invalidates any related Redis caches (`@upstash/redis`), meaning the user's dashboard is instantly updated without them needing to refresh the page.
+Most API calls that fetch heavy third-party data (like `gmail.listWithTriage` or `calendar.getWeekEvents`) should hit Redis (Upstash) first using helper functions from `src/lib/cache.ts`. Mutations must invalidate their respective caches.

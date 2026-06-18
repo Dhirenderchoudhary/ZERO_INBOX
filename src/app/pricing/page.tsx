@@ -37,7 +37,7 @@ export default function PricingPage() {
           </p>
           <ul className="space-y-3 text-sm">
             <li>✓ Unlimited AI Actions</li>
-            <li>✓ Realtime Corsair Webhooks</li>
+            <li>✓ Realtime Webhooks</li>
             <li>✓ Keyboard Shortcuts</li>
             <li>✓ Priority Support</li>
           </ul>
