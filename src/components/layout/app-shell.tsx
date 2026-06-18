@@ -225,6 +225,16 @@ function UserMenu({ user }: { user: any }) {
             Security
           </Link>
         </DropdownMenuItem>
+        {user?.role === "admin" && (
+          <DropdownMenuItem>
+            <Link
+              href="/admin"
+              className="w-full cursor-pointer font-bold text-indigo-500"
+            >
+              Admin Dashboard
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"

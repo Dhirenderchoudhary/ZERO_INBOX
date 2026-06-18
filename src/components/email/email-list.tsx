@@ -178,7 +178,7 @@ export function EmailList() {
         </div>
       </div>
 
-      <div className="bg-muted/20 min-h-0 flex-1 overflow-y-auto py-1">
+      <div className="bg-muted/20 min-h-0 flex-1 overflow-y-auto px-2 py-1">
         {isLoading ? (
           <div className="py-1">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -242,24 +242,115 @@ export function EmailList() {
                 transition: { staggerChildren: 0.04 },
               },
             }}
+            className="space-y-6 pt-2 pb-6"
           >
-            {displayed.map((email: any, idx: number) => (
-              <EmailRow
-                key={email.entity_id}
-                email={email}
-                index={idx}
-                isSelected={selectedId === email.entity_id}
-                isFocused={focusedIdx === idx && !selectedId}
-                onClick={() => {
-                  setSelectedId(email.entity_id);
-                  setFocusedIdx(idx);
-                  if (!email.isRead) {
-                    markRead.mutate(email.entity_id);
-                    email.isRead = true; // Optimistic update
-                  }
-                }}
-              />
-            ))}
+            {(() => {
+              // Group by priority if not searching and filter is 'all'
+              if (search.length <= 1 && filter === "all") {
+                const grouped = {
+                  urgent: displayed.filter((e: any) => e.priority === "urgent"),
+                  needs_reply: displayed.filter(
+                    (e: any) => e.priority === "needs_reply",
+                  ),
+                  fyi: displayed.filter((e: any) => e.priority === "fyi"),
+                  newsletter: displayed.filter(
+                    (e: any) => e.priority === "newsletter",
+                  ),
+                  other: displayed.filter(
+                    (e: any) =>
+                      !["urgent", "needs_reply", "fyi", "newsletter"].includes(
+                        e.priority,
+                      ),
+                  ),
+                };
+
+                return Object.entries(grouped).map(
+                  ([priority, groupEmails]) => {
+                    if (groupEmails.length === 0) return null;
+
+                    // Compute a running index for keyboard focus across groups
+                    const startIndex = displayed.findIndex(
+                      (e: any) => e === groupEmails[0],
+                    );
+
+                    return (
+                      <div key={priority} className="space-y-1">
+                        <div className="flex items-center gap-2 px-2 pt-2 pb-1">
+                          <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
+                            {priority === "urgent" && (
+                              <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                            )}
+                            {priority === "needs_reply" && (
+                              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                            )}
+                            {priority === "fyi" && (
+                              <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                            )}
+                            {priority === "newsletter" && (
+                              <div className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+                            )}
+                            {priority === "other" && (
+                              <div className="bg-border h-1.5 w-1.5 rounded-full" />
+                            )}
+                            {priority.replace("_", " ")}
+                          </span>
+                          <div className="bg-border/50 ml-2 h-px flex-1"></div>
+                        </div>
+                        <div className="space-y-0.5">
+                          {groupEmails.map(
+                            (email: any, idxWithinGroup: number) => {
+                              const globalIdx = startIndex + idxWithinGroup;
+                              return (
+                                <EmailRow
+                                  key={email.entity_id}
+                                  email={email}
+                                  index={globalIdx}
+                                  isSelected={selectedId === email.entity_id}
+                                  isFocused={
+                                    focusedIdx === globalIdx && !selectedId
+                                  }
+                                  onClick={() => {
+                                    setSelectedId(email.entity_id);
+                                    setFocusedIdx(globalIdx);
+                                    if (!email.isRead) {
+                                      markRead.mutate(email.entity_id);
+                                      email.isRead = true; // Optimistic update
+                                    }
+                                  }}
+                                />
+                              );
+                            },
+                          )}
+                        </div>
+                      </div>
+                    );
+                  },
+                );
+              }
+
+              // Standard flat list for filters/searches
+              return (
+                <div className="space-y-0.5">
+                  {displayed.map((email: any, idx: number) => (
+                    <EmailRow
+                      key={email.entity_id}
+                      email={email}
+                      index={idx}
+                      isSelected={selectedId === email.entity_id}
+                      isFocused={focusedIdx === idx && !selectedId}
+                      onClick={() => {
+                        setSelectedId(email.entity_id);
+                        setFocusedIdx(idx);
+                        if (!email.isRead) {
+                          markRead.mutate(email.entity_id);
+                          email.isRead = true; // Optimistic update
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </motion.div>
         )}
       </div>

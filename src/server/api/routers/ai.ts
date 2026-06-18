@@ -20,6 +20,12 @@ import {
   SummarizeEmailSchema,
   DraftReplySchema,
   PrioritySchema,
+  GetRecentEmailsSchema,
+  AISendEmailSchema,
+  AICreateEventSchema,
+  SearchDriveSchema,
+  ListGithubIssuesSchema,
+  CreateGithubIssueSchema,
 } from "../../lib/schemas";
 import {
   getAiSummaryCache,
@@ -65,7 +71,14 @@ export const aiRouter = createTRPCRouter({
         messages: [
           {
             role: "system",
-            content: `You are an email triage assistant. Classify into exactly one category:\n- urgent: time-sensitive, needs immediate action today\n- needs_reply: sender is waiting for your response  \n- fyi: informational, read when you have time\n- newsletter: marketing, newsletters, automated emails\n- other: everything else\n\nRespond with ONLY the category word. Nothing else.`,
+            content: `You are Zero Inbox's elite AI assistant. You analyze emails to extract the core essence, actionable items, and summary. Classify into exactly one category:
+- urgent: time-sensitive, needs immediate action today
+- needs_reply: sender is waiting for your response  
+- fyi: informational, read when you have time
+- newsletter: marketing, newsletters, automated emails
+- other: everything else
+
+Respond with ONLY the category word. Nothing else.`,
           },
           {
             role: "user",
@@ -120,8 +133,7 @@ export const aiRouter = createTRPCRouter({
         messages: [
           {
             role: "system",
-            content:
-              "Summarize this email in 1-2 sentences. Be direct and specific. No fluff.",
+            content: `You are Zero Inbox's elite AI assistant. Summarize the following email in 2-3 concise sentences. Focus solely on the core message, actionable items, and key takeaways. Do not output conversational filler.`,
           },
           {
             role: "user",
@@ -148,8 +160,7 @@ export const aiRouter = createTRPCRouter({
         messages: [
           {
             role: "system",
-            content:
-              "Draft a brief, professional email reply. Just the body text — no subject, no greeting needed. Keep it concise.",
+            content: `You are Zero Inbox's world-class communication AI. Draft a professional, warm, and highly articulate email reply. Output ONLY the email body text. Do not output markdown code blocks. Do not add subject lines or placeholders.`,
           },
           {
             role: "user",
@@ -226,7 +237,13 @@ Rules:
           };
 
       const messages: ChatMessage[] = [
-        { role: "system", content: systemPrompt },
+        {
+          role: "system",
+          content: `You are Zero Inbox, a state-of-the-art AI workflow and communication assistant. 
+You exist to help the user master their inbox, calendar, and daily tasks with unparalleled speed and accuracy. 
+When asked about emails or calendar events, use your specialized tool-calls seamlessly.
+Always respond in a professional, concise, and helpful tone.`,
+        },
         ...input.history.map((h) => ({
           role: h.role,
           content: h.content,
@@ -369,10 +386,8 @@ Rules:
             >;
 
             if (tc.function.name === "fetch_recent_emails") {
-              const limit = Math.min(
-                typeof args.limit === "number" ? args.limit : 5,
-                20,
-              );
+              GetRecentEmailsSchema.parse(args);
+              const limit = typeof args.limit === "number" ? args.limit : 10;
               const raw = await tenant.gmail.db.messages.list({ limit });
               const deduped = dedupeAndSort(raw).slice(0, limit);
               toolResult = deduped
@@ -383,52 +398,48 @@ Rules:
                 .join("\n\n");
               actionsExecuted.push(`Fetched ${deduped.length} recent emails.`);
             } else if (tc.function.name === "send_email") {
-              const to = typeof args.to === "string" ? args.to : "";
-              const subject =
-                typeof args.subject === "string" ? args.subject : "";
-              const body = typeof args.body === "string" ? args.body : "";
+              const { to, subject, body } = AISendEmailSchema.parse(args);
               const raw = encodeRawEmail({ to, subject, body });
               await tenant.gmail.api.messages.send({ raw });
               actionsExecuted.push(`Sent email to ${to} — "${subject}"`);
             } else if (tc.function.name === "create_event") {
-              const attendeeEmails = (
-                Array.isArray(args.attendees) ? args.attendees : []
-              ) as string[];
+              const {
+                summary,
+                description,
+                startTime,
+                endTime,
+                attendees,
+                sendInvites,
+              } = AICreateEventSchema.parse(args);
               await tenant.googlecalendar.api.events.create({
                 calendarId: "primary",
-                sendUpdates: args.sendInvites ? "all" : "none",
+                sendUpdates: sendInvites ? "all" : "none",
                 event: {
-                  summary: typeof args.summary === "string" ? args.summary : "",
-                  description:
-                    typeof args.description === "string"
-                      ? args.description
-                      : "",
+                  summary,
+                  description,
                   start: {
-                    dateTime:
-                      typeof args.startTime === "string" ? args.startTime : "",
+                    dateTime: startTime,
                     timeZone: IST,
                   },
                   end: {
-                    dateTime:
-                      typeof args.endTime === "string" ? args.endTime : "",
+                    dateTime: endTime,
                     timeZone: IST,
                   },
-                  attendees: attendeeEmails.map((e) => ({ email: e })),
+                  attendees: attendees.map((e) => ({ email: e })),
                 },
               });
               actionsExecuted.push(
-                `Created "${typeof args.summary === "string" ? args.summary : ""}" with ${attendeeEmails.length} attendee(s)`,
+                `Created "${summary}" with ${attendees.length} attendee(s)`,
               );
             } else if (tc.function.name === "search_drive") {
-              const query = typeof args.query === "string" ? args.query : "";
+              const { query } = SearchDriveSchema.parse(args);
               const response = await tenant.googledrive.api.files.list({
                 q: `name contains '${query}'`,
               });
               toolResult = JSON.stringify(response.files);
               actionsExecuted.push(`Searched Google Drive for "${query}"`);
             } else if (tc.function.name === "list_github_issues") {
-              const owner = typeof args.owner === "string" ? args.owner : "";
-              const repo = typeof args.repo === "string" ? args.repo : "";
+              const { owner, repo } = ListGithubIssuesSchema.parse(args);
               const issues = await tenant.github.api.issues.list({
                 owner,
                 repo,
@@ -438,10 +449,8 @@ Rules:
               );
               actionsExecuted.push(`Fetched issues for ${owner}/${repo}`);
             } else if (tc.function.name === "create_github_issue") {
-              const owner = typeof args.owner === "string" ? args.owner : "";
-              const repo = typeof args.repo === "string" ? args.repo : "";
-              const title = typeof args.title === "string" ? args.title : "";
-              const body = typeof args.body === "string" ? args.body : "";
+              const { owner, repo, title, body } =
+                CreateGithubIssueSchema.parse(args);
               const issue = await tenant.github.api.issues.create({
                 owner,
                 repo,

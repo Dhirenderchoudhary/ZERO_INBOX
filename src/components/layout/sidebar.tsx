@@ -20,6 +20,7 @@ import {
   GitBranch,
   HardDrive,
   Command,
+  CreditCard,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -39,14 +40,8 @@ const workspaceNav = [
   { label: "Starred", href: "/inbox?f=starred", icon: Star },
   { label: "Sent", href: "/inbox?f=sent", icon: Send },
   { label: "Security", href: "/security", icon: ShieldCheck },
+  { label: "Billing & Usage", href: "/dashboard/billing", icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
-];
-
-const triageNav = [
-  { label: "Urgent", href: "/inbox?p=urgent", color: "bg-red-500" },
-  { label: "Needs Reply", href: "/inbox?p=needs_reply", color: "bg-blue-500" },
-  { label: "FYI", href: "/inbox?p=fyi", color: "bg-violet-500" },
-  { label: "Newsletters", href: "/inbox?p=newsletter", color: "bg-slate-500" },
 ];
 
 export function Sidebar({
@@ -158,25 +153,6 @@ export function Sidebar({
           collapsed={collapsed}
           onNavigate={onNavigate}
         />
-
-        {!collapsed && (
-          <div>
-            <SectionLabel>Priority triage</SectionLabel>
-            <div className="mt-2 space-y-1">
-              {triageNav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
-                  className="group text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors"
-                >
-                  <span className={cn("size-2 rounded-full", item.color)} />
-                  <span className="flex-1">{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="border-sidebar-border mt-auto space-y-1 border-t p-3">

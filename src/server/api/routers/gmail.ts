@@ -20,6 +20,7 @@ import {
   invalidateTriageCache,
   invalidateDashboardCache,
 } from "../../lib/cache";
+import { triggerBackgroundTriage } from "../../lib/qstash";
 
 function enrichWithTriage(
   messages: Record<string, unknown>[],
@@ -59,37 +60,36 @@ export const gmailRouter = createTRPCRouter({
       const tenant = getTenant(ctx.session.user.id);
       let raw = await tenant.gmail.db.messages.list({ limit: input.limit });
 
-      // Fallback: If DB is empty (e.g. first login), synchronously fetch a quick batch to prevent bad UX
+      // Fallback: If DB is empty, fetch a tiny metadata batch synchronously, and offload the rest
       if (raw.length === 0) {
         try {
+          // Trigger the background worker to fetch everything else asynchronously safely via QStash helper
+          void triggerBackgroundTriage(ctx.session.user.id);
+
           const response = await tenant.gmail.api.messages.list({
-            maxResults: 50,
+            maxResults: 15,
           });
           const liveMessages = response.messages ?? [];
-          const fetched = await Promise.allSettled(
+
+          // Only fetch minimal metadata headers for extreme speed
+          await Promise.allSettled(
             liveMessages.map(async (msg) => {
-              if (!msg.id) return null;
+              if (!msg.id) return;
               const full = await tenant.gmail.api.messages.get({
                 id: msg.id,
                 format: "metadata",
+                metadataHeaders: ["From", "Subject", "Date"],
               });
-              // Fire and forget upsert so it doesn't block the return
-              void tenant.gmail.db.messages.upsertByEntityId(
+              await tenant.gmail.db.messages.upsertByEntityId(
                 msg.id,
                 full as any,
               );
-              return full;
             }),
           );
-          raw = fetched
-            .filter(
-              (result) =>
-                result.status === "fulfilled" && result.value !== null,
-            )
-            .map((result: any) => result.value) as any;
+          // Re-query local DB so shape perfectly matches the rest of the application
+          raw = await tenant.gmail.db.messages.list({ limit: 15 });
         } catch (error: any) {
           console.error("Fallback sync failed", error);
-          // If the fallback fails, it usually means the user has not connected Gmail or tokens are invalid.
           throw new Error("GMAIL_NOT_CONNECTED");
         }
       }

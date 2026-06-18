@@ -81,8 +81,7 @@ async function handler(req: Request) {
           messages: [
             {
               role: "system",
-              content:
-                "Classify email: urgent, needs_reply, fyi, newsletter, or other. Reply with ONLY the word.",
+              content: `You are Zero Inbox's elite background AI agent. You analyze emails asynchronously to extract the core intent. Classify into exactly one category: urgent, needs_reply, fyi, newsletter, or other. Reply with ONLY the category word. No other characters.`,
             },
             {
               role: "user",

@@ -1,111 +1,142 @@
 "use client";
 
+import { useState } from "react";
 import { api } from "@/trpc/react";
-import { HardDrive, File, ImageIcon, Folder } from "lucide-react";
+import {
+  HardDrive,
+  Search,
+  FileText,
+  ExternalLink,
+  Image as ImageIcon,
+  FileSpreadsheet,
+  FileIcon,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-
-function getFileIcon(mimeType: string) {
-  if (mimeType === "application/vnd.google-apps.folder")
-    return <Folder className="h-5 w-5 text-blue-500" />;
-  if (mimeType.startsWith("image/"))
-    return <ImageIcon className="h-5 w-5 text-purple-500" />;
-  return <File className="h-5 w-5 text-emerald-500" />;
-}
+import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export default function DrivePage() {
-  const { data: files, isLoading } = api.drive.listFiles.useQuery();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+
+  const { data: recentFiles, isLoading: isLoadingRecent } =
+    api.drive.listFiles.useQuery(undefined, {
+      enabled: debouncedSearch.length === 0,
+    });
+
+  const { data: searchResults, isFetching: isSearching } =
+    api.drive.searchFiles.useQuery(
+      { query: debouncedSearch },
+      { enabled: debouncedSearch.length > 0 },
+    );
+
+  const isLoading = isLoadingRecent || isSearching;
+  const files = debouncedSearch.length > 0 ? searchResults : recentFiles;
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.includes("document"))
+      return <FileText className="text-blue-500" />;
+    if (mimeType.includes("spreadsheet"))
+      return <FileSpreadsheet className="text-green-500" />;
+    if (mimeType.includes("image"))
+      return <ImageIcon className="text-purple-500" />;
+    return <FileIcon className="text-slate-500" />;
+  };
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-6">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-xl">
-          <HardDrive className="text-foreground h-6 w-6" />
+    <div className="bg-background flex h-full flex-col overflow-hidden">
+      <header className="border-border/50 bg-background/95 sticky top-0 z-10 flex flex-col gap-4 border-b px-6 py-4 backdrop-blur">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-indigo-500/10 p-2 text-indigo-500">
+            <HardDrive size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Google Drive</h1>
+            <p className="text-muted-foreground text-sm">
+              Access and search your cloud files instantly
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Google Drive
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Recent files connected via ZERO INBOX
-          </p>
-        </div>
-      </div>
 
-      {isLoading ? (
-        <div className="flex flex-col gap-2">
-          {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-xl" />
-          ))}
+        <div className="relative max-w-xl">
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+          <Input
+            placeholder="Search files by name..."
+            className="bg-muted/50 border-border/50 pl-9 focus-visible:ring-indigo-500"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-      ) : files?.length ? (
-        <motion.div
-          className="flex flex-col gap-2"
-          initial="hidden"
-          animate="show"
-          variants={{
-            hidden: { opacity: 0 },
-            show: {
-              opacity: 1,
-              transition: { staggerChildren: 0.05 },
-            },
-          }}
-        >
-          {files.map((file: any) => (
-            <motion.a
-              key={file.id}
-              href={file.webViewLink}
-              target="_blank"
-              rel="noreferrer"
-              variants={{
-                hidden: { opacity: 0, y: 10 },
-                show: { opacity: 1, y: 0 },
-              }}
-              whileHover={{ scale: 1.01 }}
-              className="glass-panel flex items-center gap-4 rounded-xl p-3"
-            >
-              <div className="bg-muted/50 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-                {file.iconLink ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={file.iconLink} alt="Icon" className="h-5 w-5" />
-                ) : (
-                  getFileIcon(file.mimeType)
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="truncate font-medium">{file.name}</h3>
-                <p className="text-muted-foreground truncate text-xs">
-                  {file.mimeType}
-                </p>
-              </div>
-              <div className="text-muted-foreground hidden shrink-0 text-xs sm:block">
-                {file.modifiedTime
-                  ? formatDistanceToNow(new Date(file.modifiedTime), {
-                      addSuffix: true,
-                    })
-                  : ""}
-              </div>
-            </motion.a>
-          ))}
-        </motion.div>
-      ) : (
-        <div className="border-border/70 bg-muted/20 flex h-64 flex-col items-center justify-center rounded-xl border border-dashed text-center">
-          <HardDrive className="text-muted-foreground mb-4 h-8 w-8" />
-          <h3 className="font-semibold">No files found</h3>
-          <p className="text-muted-foreground mb-4 text-sm">
-            Or you need to reconnect your Google Drive account.
-          </p>
-          <Button
-            onClick={() =>
-              (window.location.href = "/api/corsair/connect?plugin=googledrive")
-            }
+      </header>
+
+      <main className="bg-muted/10 flex-1 overflow-y-auto p-6">
+        {isLoading ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : files?.length ? (
+          <motion.div
+            className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.05 },
+              },
+            }}
           >
-            Connect Google Drive
-          </Button>
-        </div>
-      )}
+            <AnimatePresence>
+              {files.map((file: any) => (
+                <motion.a
+                  key={file.id}
+                  href={file.webViewLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  variants={{
+                    hidden: { opacity: 0, scale: 0.95 },
+                    show: { opacity: 1, scale: 1 },
+                  }}
+                  layout
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  className="bg-card border-border/50 group flex cursor-pointer flex-col justify-between rounded-xl border p-4 transition-all hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/5"
+                >
+                  <div>
+                    <div className="mb-3 flex items-start justify-between gap-2">
+                      <div className="bg-muted/50 rounded-lg p-2">
+                        {getFileIcon(file.mimeType)}
+                      </div>
+                      <ExternalLink className="text-muted-foreground h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:text-indigo-500 group-hover:opacity-100" />
+                    </div>
+                    <h3 className="line-clamp-2 text-sm font-medium transition-colors group-hover:text-indigo-500">
+                      {file.name}
+                    </h3>
+                  </div>
+                  <div className="text-muted-foreground mt-4 text-xs font-medium">
+                    Updated {formatDistanceToNow(new Date(file.modifiedTime))}{" "}
+                    ago
+                  </div>
+                </motion.a>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        ) : (
+          <div className="border-border/50 bg-card flex h-[60vh] flex-col items-center justify-center rounded-xl border border-dashed text-center">
+            <HardDrive className="text-muted-foreground/50 mb-4 h-12 w-12" />
+            <h3 className="text-lg font-semibold">No files found</h3>
+            <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+              {search
+                ? `No results matching "${search}" in your Google Drive.`
+                : "Your Google Drive seems empty or isn't connected properly."}
+            </p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

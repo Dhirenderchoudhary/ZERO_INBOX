@@ -20,6 +20,7 @@ export const priorityEnum = pgEnum("email_priority", [
 ]);
 
 export const agentRoleEnum = pgEnum("agent_role", ["user", "assistant"]);
+export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "active",
@@ -36,6 +37,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull(),
   image: text("image"),
+  role: userRoleEnum("role").notNull().default("user"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });

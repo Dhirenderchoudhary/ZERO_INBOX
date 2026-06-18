@@ -270,3 +270,41 @@ export type ScheduledEmailInput = z.infer<typeof ScheduledEmailSchema>;
 export type CalendarEventInput = z.infer<typeof CalendarEventSchema>;
 export type AgentChatInput = z.infer<typeof AgentChatSchema>;
 export type TriageOneInput = z.infer<typeof TriageOneSchema>;
+
+// ─── AI Tool Argument Schemas ────────────────────────────────────────────────
+
+export const GetRecentEmailsSchema = z.object({});
+
+export const AISendEmailSchema = z.object({
+  to: z.string().email("Invalid email address"),
+  subject: z.string().min(1, "Subject is required"),
+  body: z.string().min(1, "Body is required"),
+});
+
+export const AICreateEventSchema = z.object({
+  summary: z.string().min(1, "Event summary is required"),
+  description: z.string().optional().default(""),
+  startTime: z.string().datetime("Invalid start time ISO 8601 string"),
+  endTime: z.string().datetime("Invalid end time ISO 8601 string"),
+  attendees: z
+    .array(z.string().email("Invalid attendee email"))
+    .optional()
+    .default([]),
+  sendInvites: z.boolean().optional().default(true),
+});
+
+export const SearchDriveSchema = z.object({
+  query: z.string().min(1, "Search query is required"),
+});
+
+export const ListGithubIssuesSchema = z.object({
+  owner: z.string().min(1, "Owner is required"),
+  repo: z.string().min(1, "Repo is required"),
+});
+
+export const CreateGithubIssueSchema = z.object({
+  owner: z.string().min(1, "Owner is required"),
+  repo: z.string().min(1, "Repo is required"),
+  title: z.string().min(1, "Title is required"),
+  body: z.string().optional().default(""),
+});

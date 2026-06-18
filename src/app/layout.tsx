@@ -5,6 +5,7 @@ import { Inter, JetBrains_Mono, Newsreader } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { AgentationWrapper } from "@/components/agentation-wrapper";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const jetbrainsMono = JetBrains_Mono({
@@ -56,6 +57,7 @@ export default function RootLayout({
         >
           <TRPCReactProvider>{children}</TRPCReactProvider>
           <AgentationWrapper />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
