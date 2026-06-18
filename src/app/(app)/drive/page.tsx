@@ -129,11 +129,19 @@ export default function DrivePage() {
           <div className="border-border/50 bg-card flex h-[60vh] flex-col items-center justify-center rounded-xl border border-dashed text-center">
             <HardDrive className="text-muted-foreground/50 mb-4 h-12 w-12" />
             <h3 className="text-lg font-semibold">No files found</h3>
-            <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+            <p className="text-muted-foreground mt-1 mb-6 max-w-sm text-sm">
               {search
                 ? `No results matching "${search}" in your Google Drive.`
                 : "Your Google Drive seems empty or isn't connected properly."}
             </p>
+            {!search && (
+              <a
+                href="/api/corsair/connect?plugin=googledrive"
+                className="rounded-lg bg-indigo-500 px-6 py-2 font-medium text-white shadow-md transition-colors hover:bg-indigo-600"
+              >
+                Connect Google Drive
+              </a>
+            )}
           </div>
         )}
       </main>
