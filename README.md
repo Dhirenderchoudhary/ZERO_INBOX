@@ -1,359 +1,213 @@
-<div align="center">
-  <img src="public/zero-inbox-logo-120.png" width="120" height="120" alt="Zero Inbox Logo" />
-  <h1>Zero Inbox</h1>
-  <p><strong>Your entire workday. One autonomous command center.</strong></p>
-  <p>An AI-first communication platform that connects Gmail, Google Calendar, Google Drive, and GitHub into a single intelligent workspace — so you stop switching tabs and start getting things done.</p>
-  <br/>
-  <img src="https://img.shields.io/badge/Next.js-15.5-black?style=flat-square&logo=next.js" />
-  <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react" />
-  <img src="https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript" />
-  <img src="https://img.shields.io/badge/tRPC-11-2596be?style=flat-square&logo=trpc" />
-  <img src="https://img.shields.io/badge/PostgreSQL-Neon-336791?style=flat-square&logo=postgresql" />
-  <img src="https://img.shields.io/badge/AI-OpenAI%20GPT--4o--mini-412991?style=flat-square&logo=openai" />
-  <img src="https://img.shields.io/badge/Corsair-SDK-ff6b35?style=flat-square" />
-  <img src="https://img.shields.io/badge/Upstash-QStash%20%2B%20Redis-dc382d?style=flat-square&logo=redis" />
-  <br/><br/>
-  <a href="https://www.zeroinbox.fun/"><strong>🌐 Live Demo</strong></a> · 
-  <a href="https://zero-inbox-eight.vercel.app/"><strong>⚡ Vercel Mirror</strong></a> · 
-  <a href="https://github.com/Dhirenderchoudhary/ZERO_INBOX"><strong>⭐ Star on GitHub</strong></a>
-</div>
+# Zero Inbox
+
+Zero Inbox is a production-grade AI productivity platform that connects to your Gmail, Google Calendar, Google Drive, and GitHub, letting you manage them through natural language. It ships two distinct interaction modes: an agentic chat interface powered by custom AI agents, and a traditional manual interface for direct inbox and calendar management. Both modes are served from a single Next.js 16 application deployed on Vercel. An internal admin panel gives operators full visibility into users, AI usage, costs, security events, sessions, and revenue.
 
 ---
 
 ## 🚀 Quick Links
-- **[Live Demo](https://www.zeroinbox.fun/)** - Try the fully working app
-- **[API Reference](https://www.zeroinbox.fun/reference)** - Stunning interactive Scalar API documentation
-- **[Billing Dashboard](https://www.zeroinbox.fun/dashboard/billing)** - Razorpay subscription management
+
+- **[Live Demo](https://www.zeroinbox.fun/)** - Try the fully working app.
+- **[API Reference](https://www.zeroinbox.fun/reference)** - Stunning interactive Scalar API documentation.
+- **[Pricing & Billing](https://www.zeroinbox.fun/pricing)** - See our subscription tiers and Razorpay integration.
 
 ---
 
-## The Problem
+## Table of Contents
 
-Modern knowledge workers live across 5–7 different tools simultaneously. You get an email asking to schedule a meeting — so you open Calendar. Someone asks about a PR — so you flip to GitHub. A colleague shares a Drive doc in an email — you open that in another tab.
-
-**Every context switch costs 20+ minutes of deep focus.** By end of day, you've spent more time *navigating* your tools than actually *using* them.
-
-The deeper problem: these tools are **intrinsically linked** but artificially separated:
-- An email often *becomes* a calendar event  
-- A calendar event often has *attachments in Drive*  
-- A PR review often *needs an email follow-up*  
-- A task in your inbox is *blocking a meeting on your calendar*
-
-Email clients show you email. Calendar apps show you events. GitHub shows you code. **None of them understand the connections between them.**
-
----
-
-## The Solution
-
-Zero Inbox is a **unified AI command center** that treats your email, calendar, code, and files as one connected stream — not four separate silos.
-
-Instead of switching between apps, you have **one intelligent workspace** where AI autonomously:
-
-- 🔴 **Triages** every incoming email (Urgent / Needs Reply / FYI / Newsletter)
-- 📝 **Summarizes** threads in 2–3 sentences so you never read spam
-- ✍️ **Drafts** context-aware replies in your professional tone
-- 📅 **Detects** meeting requests and manages your calendar
-- 📁 **Searches** your Google Drive files instantly
-- 🔀 **Tracks** GitHub repositories and issues
-- 💬 **Executes** multi-step workflows via natural language
-
-**The core insight:** your workday is a single stream of context. Zero Inbox makes your tools reflect that reality.
+1. [Overview](#overview)
+2. [Architecture](#architecture)
+3. [Tech Stack](#tech-stack)
+4. [Project Structure](#project-structure)
+5. [Core Features](#core-features)
+6. [Agent Pipeline](#agent-pipeline)
+7. [Authentication](#authentication)
+8. [Database Schema](#database-schema)
+9. [API Routes](#api-routes)
+10. [tRPC Routers](#trpc-routers)
+11. [Admin Panel](#admin-panel)
+12. [Plans and Billing](#plans-and-billing)
+13. [Rate Limiting and Quotas](#rate-limiting-and-quotas)
+14. [Background Jobs](#background-jobs)
+15. [Payment Integration](#payment-integration)
+16. [Theming](#theming)
+17. [Middleware](#middleware)
+18. [Testing](#testing)
+19. [CI/CD](#cicd)
+20. [Environment Variables](#environment-variables)
+21. [Local Development](#local-development)
+22. [Database Management](#database-management)
+23. [Deployment](#deployment)
 
 ---
 
-## Features
+## Overview
 
-### 🧠 Autonomous AI Triage Engine
+Zero Inbox integrates deeply with third-party tools using **Corsair**, an integration layer that handles OAuth flows, credential storage, API proxying, and entity caching. Users sign in with Google, grant the required OAuth scopes, and immediately get access to:
 
-Every incoming email is autonomously evaluated in the background using **Upstash QStash** durable webhooks and **OpenAI GPT-4o-mini**. No manual sorting required.
+- An AI chat interface (Agentic mode) where an AI agent can read emails, draft and send messages, create calendar events, search GitHub, and query Drive documents.
+- A manual interface where the user browses, searches, reads, composes, and manages emails and events directly without AI involvement.
+- A preferences system where users configure AI writing style, email focus areas, signatures, and digest settings.
+- An admin panel at `/admin` with full operational telemetry: user management, live sessions, revenue, security logs, and AI insights.
+- Fully interactive API documentation powered by Scalar at `/reference`.
 
-| Priority | Color | Meaning |
-|----------|-------|---------|
-| **Urgent** | 🔴 | Fires that need your immediate attention today |
-| **Needs Reply** | 🔵 | The sender is waiting for your response |
-| **FYI** | 🟣 | Read when you have free time |
-| **Newsletter** | ⚪ | Auto-archived promotional content |
-
-The triage runs entirely in the background via QStash workers — the UI is never blocked.
+The platform enforces per-plan monthly usage quotas, per-minute rate limits, and processes payments securely through Razorpay.
 
 ---
 
-### 🤖 AI Agent — Natural Language Operations
+## Architecture
 
-A conversational AI assistant embedded directly in the workspace. Talk to it in plain English and it takes real actions across your connected services.
-
-| Category | Actions |
-|----------|---------|
-| **Gmail** | Read inbox, summarize threads, draft replies, send emails, compose new |
-| **Calendar** | List today's events, create meetings, check availability |
-| **Google Drive** | Search files, find recent documents, retrieve shareable links |
-| **GitHub** | List repositories, browse issues, track PRs |
-| **Multi-step** | "Summarize my inbox, draft a reply to the urgent one, and schedule a follow-up" — all in one command |
-
----
-
-### 📬 Premium Inbox Experience
-
-A Gmail-tier email interface with everything you need:
-
-- **Real-time sync** — inbox polls every 5 seconds for instant updates
-- **Thread view** with full email body rendering (HTML + plaintext)
-- **AI Summarize** — one-click GPT summary of any email
-- **AI Draft Reply** — context-aware professional reply generation
-- **Quick actions** — archive, star, snooze, mark read/unread
-- **Priority filtering** — Urgent, Needs Reply, FYI, Starred, Sent, Unread tabs
-- **Full compose** with To, CC, Subject, rich body editor
-- **Scheduled send** via QStash delayed delivery
-- **Keyboard shortcuts** — `j/k` navigation, `r` reply, `a` archive, `s` star
-
----
-
-### 📅 Calendar Integration
-
-Full Google Calendar integration with:
-- Weekly agenda view with event details
-- One-click event creation from the sidebar
-- AI-detected meeting requests from email threads
-
----
-
-### 📁 Google Drive Hub
-
-- Search and browse your cloud files directly
-- File type icons (Docs, Sheets, Images)
-- One-click open in Google Drive
-- OAuth-secured connection
-
----
-
-### 🔀 GitHub Integration
-
-- Repository listing and issue tracking
-- PR status monitoring
-- Connected via Corsair SDK
-
----
-
-### 👑 Admin Dashboard & RBAC
-
-A robust administrative panel secured behind Role-Based Access Control:
-
-- **User management** — view all registered users, roles, and activity
-- **Platform analytics** — active users, total emails processed, AI actions
-- **Security monitoring** — session tracking, authentication events
-- **Role management** — promote/demote users between User and Admin roles
-
----
-
-### 🛡️ Enterprise-Grade Security & Validation
-
-Zero Inbox features a **production-hardened backend**:
-
-- **[World-Class API Docs](https://www.zeroinbox.fun/reference)** powered by Scalar, exposing Webhooks, AI, Billing, and tRPC endpoints with interactive playgrounds.
-- **Zod validation** on every tRPC mutation, query input, webhook payload, and AI tool call.
-- **Rate limiting** via Upstash Redis (10 AI requests/min per user).
-- **Content Security Policy (CSP)** headers.
-- **RBAC middleware** protecting admin routes.
-- **Input sanitization** — if the AI hallucinates malformed JSON, the system catches it before hitting the database.
-
----
-
-### 💳 Real-World Billing & Payments
-
-We implemented a fully functioning subscription system using **Razorpay**:
-
-- Integrated secure checkout via `/api/create-order` and `/api/verify-payment`.
-- Realtime state sync using the **Razorpay Webhook** (`/api/webhooks/razorpay`) to instantly activate subscriptions upon payment.
-- Beautiful custom UI for managing plans at **[Billing Dashboard](https://www.zeroinbox.fun/dashboard/billing)**.
-
----
-
-## 🏗️ Architecture
+For a deep dive into the system design, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ZERO INBOX                                │
-├──────────────┬──────────────┬──────────────┬────────────────────┤
-│   Next.js    │   tRPC API   │  Drizzle ORM │   Upstash QStash   │
-│  App Router  │  + Zod Layer │  + Neon PG   │  Background Jobs   │
-├──────────────┴──────────────┴──────────────┴────────────────────┤
-│                      Corsair SDK Layer                           │
-│  ┌──────────┐  ┌──────────────┐  ┌────────────┐  ┌───────────┐ │
-│  │  Gmail    │  │  Calendar    │  │   Drive    │  │  GitHub   │ │
-│  │  OAuth    │  │  OAuth       │  │   OAuth    │  │  API Key  │ │
-│  └──────────┘  └──────────────┘  └────────────┘  └───────────┘ │
-├─────────────────────────────────────────────────────────────────┤
-│  OpenAI GPT-4o-mini  │  Upstash Redis  │  Better Auth (OAuth)  │
-└─────────────────────────────────────────────────────────────────┘
+Browser
+  |
+  +-- Next.js 16 App Router (Vercel)
+        |
+        +-- Landing page            /
+        +-- Dashboard               /dashboard/*
+        +-- Admin panel             /admin/*
+        +-- API Reference           /reference
+        +-- Auth callbacks          /api/auth/*
+        +-- Background Jobs         /api/qstash/*
+        +-- Payments                /api/create-order, /api/verify-payment
+        +-- tRPC                    /api/trpc/*
+        +-- Corsair management      /api/corsair/*
+        |
+        +-- better-auth             Session management, Google OAuth
+        +-- Corsair                 Integration layer (Gmail, Calendar, Drive, GitHub)
+        +-- Drizzle ORM             Type-safe queries against PostgreSQL
+        +-- Neon PostgreSQL         Serverless database
+        +-- Upstash Redis           Sliding-window rate limiter
+        +-- Upstash QStash          Background job queues and delayed workflows
+        +-- Razorpay                Payment order creation and verification
 ```
 
-### Tech Stack
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Framework** | Next.js 15 (App Router) | Server components, API routes, middleware |
-| **Language** | TypeScript 5 (strict) | End-to-end type safety |
-| **API** | tRPC 11 + Zod | Type-safe RPC with runtime validation |
-| **Database** | PostgreSQL (Neon Serverless) | Persistent storage |
-| **ORM** | Drizzle ORM | Type-safe SQL queries with migrations |
-| **Auth** | Better Auth + Google OAuth | Social login with session management |
-| **Styling** | Tailwind CSS + shadcn/ui | Utility-first CSS with accessible components |
-| **Animations** | Framer Motion | Smooth micro-interactions and transitions |
-| **AI** | OpenAI GPT-4o-mini | Summarization, triage, drafting, agent chat |
-| **Caching** | Upstash Redis | AI response caching, rate limiting |
-| **Background Jobs** | Upstash QStash | Durable webhook-based job queue |
-| **Integrations** | Corsair SDK | Gmail, Calendar, Drive, GitHub unified API |
-| **Deployment** | Vercel | Edge-optimized hosting |
-| **CI/CD** | GitHub Actions | Lint, typecheck, test, build verification |
+Every request to `/dashboard/*` and `/admin/*` is gated by middleware (`src/middleware.ts`) that checks for a valid better-auth session cookie. Admin routes additionally require role verification.
 
 ---
 
-## 📂 Project Structure
+## Tech Stack
+
+| Category        | Technology                         | Notes                                    |
+| --------------- | ---------------------------------- | ---------------------------------------- |
+| Framework       | Next.js 16.2.9                     | App Router, React Server Components      |
+| Language        | TypeScript 5                       | Strict mode throughout                   |
+| UI              | React 19, Tailwind CSS 4           | Custom components using shadcn/ui        |
+| State           | TanStack Query v5                  | Server state, cache, invalidation        |
+| Data layer      | tRPC v11                           | End-to-end type safety                   |
+| ORM             | Drizzle ORM                        | Schema-first, migration via drizzle-kit  |
+| Database        | Neon PostgreSQL                    | Serverless connection pooling            |
+| Auth            | better-auth                        | Google OAuth, session cookies            |
+| Integrations    | Corsair                            | API proxy, entity caching, seamless auth |
+| AI models       | OpenAI GPT-4o-mini                 | Core agent intelligence                  |
+| Rate limiting   | Upstash Redis (@upstash/ratelimit) | Sliding window, serverless-safe          |
+| Background Jobs | Upstash QStash                     | Webhook queueing and async email sending |
+| Payments        | Razorpay                           | INR, order creation, HMAC verification   |
+| API Docs        | Scalar                             | Interactive OpenAPI 3.1.0 reference      |
+| Deployment      | Vercel                             | Node.js runtime for all API routes       |
+
+---
+
+## Project Structure
+
+<details>
+<summary>Click to expand full file tree</summary>
 
 ```
 src/
-├── app/                          # Next.js App Router
-│   ├── (app)/                    # Authenticated app routes
-│   │   ├── dashboard/            # Executive dashboard + billing
-│   │   ├── inbox/                # Email triage interface
-│   │   ├── calendar/             # Calendar management
-│   │   ├── drive/                # Google Drive file browser
-│   │   ├── agent/                # Full-page AI agent
-│   │   ├── github/               # GitHub integration
-│   │   ├── settings/             # User preferences
-│   │   └── security/             # Security & session management
-│   ├── (admin)/                  # Admin-only routes (RBAC protected)
-│   │   └── admin/                # User management, analytics, settings
-│   ├── api/                      # API routes
-│   │   ├── trpc/                 # tRPC endpoint handler
-│   │   ├── corsair/              # OAuth connect/callback
-│   │   ├── qstash/               # Background job webhooks
-│   │   ├── webhooks/             # Corsair + Razorpay webhooks
-│   │   └── auth/                 # Better Auth handler
-│   └── page.tsx                  # Landing page
-├── components/                   # React components
-│   ├── email/                    # Email list, detail, compose, row
-│   ├── calendar/                 # Calendar views and event creation
-│   ├── agent/                    # AI chat and floating assistant
-│   ├── admin/                    # Admin dashboard components
-│   ├── layout/                   # App shell, sidebar, command palette
-│   └── ui/                       # shadcn/ui primitives
-├── server/                       # Backend logic
-│   ├── api/routers/              # tRPC routers (gmail, ai, calendar, drive, github, billing, dashboard)
-│   ├── lib/                      # Utilities (schemas, cache, qstash, tenant, emailUtils, dedup)
-│   ├── db/                       # Drizzle schema + database connection
-│   └── corsair.ts                # Corsair SDK initialization
-├── hooks/                        # Custom React hooks
-├── lib/                          # Client-side utilities
-└── test/                         # Vitest unit tests
+  app/
+    page.tsx                        Landing page
+    layout.tsx                      Root layout, fonts, TRPCReactProvider
+    globals.css                     Tailwind imports, light/dark theme
+    dashboard/
+      page.tsx                      Main dashboard overview
+      layout.tsx                    Dashboard layout
+      billing/
+        page.tsx                    Plan card, usage meters, Razorpay checkout
+    admin/
+      layout.tsx                    Server component auth guard
+      page.tsx                      Admin overview KPIs
+      analytics/page.tsx            Analytics charts
+      users/page.tsx                User management table
+      settings/page.tsx             Global security settings
+    api/
+      auth/[...all]/route.ts        better-auth catch-all handler
+      corsair/callback/route.ts     OAuth callback
+      create-order/route.ts         POST — creates Razorpay order
+      verify-payment/route.ts       POST — verifies HMAC
+      qstash/send-email/route.ts    POST — QStash async email worker
+      qstash/triage/route.ts        POST — QStash async triage worker
+      webhooks/razorpay/route.ts    POST — Razorpay server webhook
+      trpc/[trpc]/route.ts          tRPC HTTP handler
+    reference/
+      route.ts                      Scalar API interactive documentation
+
+  components/
+    ui/                             shadcn/ui primitive components
+    email/                          Manual mode email components
+    agent/                          Agentic chat interfaces
+    dashboard/                      Dashboard widgets
+
+  lib/
+    auth.ts                         better-auth config
+    schemas.ts                      Zod validation schemas
+
+  server/
+    db/
+      index.ts                      Drizzle db client
+      schema.ts                     All PostgreSQL tables
+    api/
+      routers/                      tRPC routers (gmail, calendar, etc.)
+
+  middleware.ts                     Next.js middleware (CSP, rate-limiting)
 ```
+
+</details>
 
 ---
 
-## 🚦 Getting Started
+## Core Features
 
-### Prerequisites
-
-- Node.js 20+
-- pnpm 9+
-- PostgreSQL database (recommend [Neon](https://neon.tech))
-- Google Cloud project with OAuth credentials
-- OpenAI API key
-
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/Dhirenderchoudhary/ZERO_INBOX.git
-cd ZERO_INBOX
-pnpm install
-```
-
-### 2. Environment Variables
-
-Copy the example and fill in your keys:
-
-```bash
-cp .env.example .env
-```
-
-Required variables:
-
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | Neon PostgreSQL connection string |
-| `CORSAIR_KEK` | Corsair Key Encryption Key |
-| `TENANT_ID` | Corsair tenant identifier |
-| `OPENAI_API_KEY` | OpenAI API key for GPT-4o-mini |
-| `NEXT_PUBLIC_APP_URL` | Your app URL (e.g., `http://localhost:3000`) |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `BETTER_AUTH_SECRET` | Auth session encryption secret |
-
-### 3. Database Setup
-
-```bash
-pnpm run db:push
-```
-
-### 4. Run Development Server
-
-```bash
-pnpm dev
-```
-
-Visit `http://localhost:3000` and experience the future of autonomous communication.
+- **Agentic Chat:** Execute complex workflows across integrations using natural language.
+- **Manual Mode:** A beautifully designed traditional email and calendar client.
+- **Secure Billing:** End-to-end Razorpay integration with Webhook syncing.
+- **Background Async Triage:** Heavy AI operations are offloaded to Upstash QStash.
+- **Interactive Docs:** Live Scalar API docs at `/reference`.
+- **Global Rate Limiting:** Powered by Upstash Redis to prevent abuse.
 
 ---
 
-## 🧪 Testing & CI/CD
+## Database Schema
 
-Zero Inbox includes a comprehensive CI/CD pipeline via GitHub Actions:
+We use **Drizzle ORM** with **Neon Postgres**. Key tables include:
 
-```bash
-# Run unit tests
-pnpm test
-
-# Type checking
-pnpm typecheck
-
-# Lint & format
-pnpm lint
-pnpm format:check
-
-# Production build
-pnpm build
-```
-
-The CI pipeline runs on every push to `main`:
-1. **Setup & Cache** — Install dependencies with pnpm cache
-2. **Lint & Format** — ESLint + Prettier verification
-3. **Typecheck** — Full TypeScript strict mode check
-4. **Unit Tests** — Vitest test suite
-5. **Build Verification** — Full Next.js production build
+- `user`, `session`, `account` (better-auth)
+- `corsairIntegrations`, `corsairAccounts`, `corsairEntities` (Corsair SDK)
+- `emailTriage`, `scheduledEmails`, `agentMessages` (Core Application)
+- `subscriptions`, `usage`, `invoices` (Billing & Usage)
+- `securityEvents`, `liveSessions` (Admin Telemetry)
 
 ---
 
-## 👥 Team
+## Testing & CI/CD
 
-<table>
-  <tr>
-    <td align="center">
-      <strong>Dev</strong><br/>
-      <em>CEO & Founder</em><br/>
-      Full-stack architecture, AI integration, and product vision
-    </td>
-  </tr>
-</table>
+- **Tests:** Vitest is used for fast, concurrent unit testing (`pnpm test`).
+- **CI/CD:** GitHub Actions automatically runs `pnpm build`, `pnpm test`, and `pnpm format:check` on every push to `main`.
+- **Formatting:** Prettier ensures code consistency across the repository.
 
 ---
 
-## 📄 License
+## Local Development
 
-This project is built for the [ChaiCode](https://chaicode.com) × [Corsair](https://corsair.dev) Hackathon 2025.
+1. Clone the repository and install dependencies:
+   ```bash
+   pnpm install
+   ```
+2. Copy `.env.example` to `.env` and fill in your secrets (Neon URL, Upstash Redis, Upstash QStash, Razorpay, OpenAI, Corsair, Better Auth).
+3. Start the development server:
+   ```bash
+   pnpm dev
+   ```
 
----
-
-<div align="center">
-  <strong>Built with extreme focus on speed, enterprise security, and AI guardrails.</strong><br/>
-  <em>Zero Inbox — Command every workflow from one inbox.</em>
-</div>
+For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+For security reporting, see [SECURITY.md](SECURITY.md).
