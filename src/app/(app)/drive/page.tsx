@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/trpc/react";
 import {
   HardDrive,
@@ -20,6 +20,17 @@ import { useDebounce } from "@/hooks/use-debounce";
 export default function DrivePage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
+
+  // Fix for the crashed service worker intercepting the redirect
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  }, []);
 
   const { data: recentFiles, isLoading: isLoadingRecent } =
     api.drive.listFiles.useQuery(undefined, {
@@ -137,6 +148,8 @@ export default function DrivePage() {
             {!search && (
               <a
                 href="/api/corsair/connect?plugin=googledrive"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="rounded-lg bg-indigo-500 px-6 py-2 font-medium text-white shadow-md transition-colors hover:bg-indigo-600"
               >
                 Connect Google Drive
