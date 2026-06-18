@@ -90,6 +90,8 @@ jobs:
       SKIP_ENV_VALIDATION: 1
       # Disable telemetry for CI
       NEXT_TELEMETRY_DISABLED: 1
+      QSTASH_CURRENT_SIGNING_KEY: "dummy_key_for_ci"
+      QSTASH_NEXT_SIGNING_KEY: "dummy_key_for_ci"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
