@@ -20,6 +20,13 @@
 
 ---
 
+## 🚀 Quick Links
+- **[Live Demo](https://www.zeroinbox.fun/)** - Try the fully working app
+- **[API Reference](https://www.zeroinbox.fun/reference)** - Stunning interactive Scalar API documentation
+- **[Billing Dashboard](https://www.zeroinbox.fun/dashboard/billing)** - Razorpay subscription management
+
+---
+
 ## The Problem
 
 Modern knowledge workers live across 5–7 different tools simultaneously. You get an email asking to schedule a meeting — so you open Calendar. Someone asks about a PR — so you flip to GitHub. A colleague shares a Drive doc in an email — you open that in another tab.
@@ -142,11 +149,22 @@ A robust administrative panel secured behind Role-Based Access Control:
 
 Zero Inbox features a **production-hardened backend**:
 
-- **Zod validation** on every tRPC mutation, query input, webhook payload, and AI tool call
-- **Rate limiting** via Upstash Redis (10 AI requests/min per user)
-- **Content Security Policy (CSP)** headers
-- **RBAC middleware** protecting admin routes
-- **Input sanitization** — if the AI hallucinates malformed JSON, the system catches it before hitting the database
+- **[World-Class API Docs](https://www.zeroinbox.fun/reference)** powered by Scalar, exposing Webhooks, AI, Billing, and tRPC endpoints with interactive playgrounds.
+- **Zod validation** on every tRPC mutation, query input, webhook payload, and AI tool call.
+- **Rate limiting** via Upstash Redis (10 AI requests/min per user).
+- **Content Security Policy (CSP)** headers.
+- **RBAC middleware** protecting admin routes.
+- **Input sanitization** — if the AI hallucinates malformed JSON, the system catches it before hitting the database.
+
+---
+
+### 💳 Real-World Billing & Payments
+
+We implemented a fully functioning subscription system using **Razorpay**:
+
+- Integrated secure checkout via `/api/create-order` and `/api/verify-payment`.
+- Realtime state sync using the **Razorpay Webhook** (`/api/webhooks/razorpay`) to instantly activate subscriptions upon payment.
+- Beautiful custom UI for managing plans at **[Billing Dashboard](https://www.zeroinbox.fun/dashboard/billing)**.
 
 ---
 
