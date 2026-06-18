@@ -14,7 +14,7 @@ export const driveRouter = createTRPCRouter({
       } as any);
       return response.files ?? [];
     } catch (error: any) {
-      console.error("Drive fetch error:", error?.message);
+      console.warn("Drive fetch error:", error?.message);
       return [];
     }
   }),
@@ -33,7 +33,7 @@ export const driveRouter = createTRPCRouter({
         } as any);
         return response.files ?? [];
       } catch (error: any) {
-        console.error("Drive search error:", error?.message);
+        console.warn("Drive search error:", error?.message);
         return [];
       }
     }),
