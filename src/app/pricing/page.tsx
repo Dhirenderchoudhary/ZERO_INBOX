@@ -14,27 +14,64 @@ export default function PricingPage() {
       return;
     }
 
-    const options = {
-      key: "rzp_test_dummykey", // Enter the Key ID generated from the Dashboard
-      amount: "10000", // Amount is in currency subunits. Default currency is INR. Hence, 10000 refers to 100 INR
-      currency: "INR",
-      name: "Zero Inbox",
-      description: "Upgrade to Pro Subscription",
-      handler: function (response: any) {
-        alert(
-          "Payment successful! Payment ID: " + response.razorpay_payment_id,
-        );
-      },
-      prefill: {
-        name: "User",
-        email: "user@example.com",
-      },
-      theme: {
-        color: "#6366f1",
-      },
-    };
-    const rzp = new (window as any).Razorpay(options);
-    rzp.open();
+    try {
+      const res = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 10000, currency: "INR" }),
+      });
+      const order = await res.json();
+
+      if (!res.ok) throw new Error(order.error || "Failed to create order");
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: "Zero Inbox",
+        description: "Upgrade to Pro Subscription",
+        handler: async function (response: any) {
+          try {
+            const verifyRes = await fetch("/api/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            if (verifyRes.ok) {
+              alert("Payment successful! Upgraded to Pro.");
+            } else {
+              const verifyData = await verifyRes.json();
+              alert(
+                "Payment verification failed: " +
+                  (verifyData.error || "Unknown"),
+              );
+            }
+          } catch (e: any) {
+            alert("Payment verification failed: " + e.message);
+          }
+        },
+        prefill: {
+          name: "User",
+          email: "user@example.com",
+        },
+        theme: {
+          color: "#6366f1",
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", function (response: any) {
+        alert("Payment Failed: " + response.error.description);
+      });
+      rzp.open();
+    } catch (error: any) {
+      alert("Payment Error: " + error.message);
+    }
   };
 
   return (
