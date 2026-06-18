@@ -6,8 +6,12 @@ export function dedupeAndSort(messages: any[]): any[] {
       map.set(m.entity_id, m);
     }
   }
-  return Array.from(map.values()).sort(
-    (a, b) =>
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-  );
+  return Array.from(map.values()).sort((a, b) => {
+    const getDate = (m: any) => {
+      if (m.data?.internalDate) return Number(m.data.internalDate);
+      if (m.internalDate) return Number(m.internalDate);
+      return new Date(m.updated_at).getTime();
+    };
+    return getDate(b) - getDate(a);
+  });
 }

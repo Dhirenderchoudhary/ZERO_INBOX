@@ -19,13 +19,13 @@ export function InboxIntelligence({
 }) {
   const router = useRouter();
   const rows = [
-    { label: "Urgent", value: data?.urgent ?? 0, color: "bg-red-500" },
+    { label: "Urgent", value: data?.urgent ?? 0, color: "bg-rose-500" },
     {
       label: "Needs reply",
       value: data?.needs_reply ?? 0,
-      color: "bg-blue-500",
+      color: "bg-amber-500",
     },
-    { label: "FYI", value: data?.fyi ?? 0, color: "bg-violet-500" },
+    { label: "FYI", value: data?.fyi ?? 0, color: "bg-indigo-500" },
     { label: "Archived noise", value: data?.noise ?? 0, color: "bg-slate-500" },
   ];
 

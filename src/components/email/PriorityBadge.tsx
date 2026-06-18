@@ -3,17 +3,17 @@ import { cn } from "@/lib/utils";
 const BADGE_CONFIG = {
   urgent: {
     label: "Urgent",
-    className: "text-destructive bg-destructive/10 border-destructive/20",
+    className: "text-rose-500 bg-rose-500/10 border-rose-500/20",
     dot: true,
   },
   needs_reply: {
     label: "Reply",
-    className: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+    className: "text-amber-500 bg-amber-500/10 border-amber-500/20",
     dot: false,
   },
   fyi: {
     label: "FYI",
-    className: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+    className: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
     dot: false,
   },
   newsletter: {

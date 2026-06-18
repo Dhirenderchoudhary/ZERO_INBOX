@@ -20,15 +20,15 @@ import {
 
 describe("gmailRouter input schemas", () => {
   describe("listWithTriage input", () => {
-    it("defaults limit=50, priority='all'", () => {
+    it("defaults limit=150, priority='all'", () => {
       const result = ListWithTriageSchema.parse({});
-      expect(result.limit).toBe(50);
+      expect(result.limit).toBe(150);
       expect(result.priority).toBe("all");
     });
 
-    it("rejects limit=0 and limit=101", () => {
+    it("rejects limit=0 and limit=501", () => {
       expect(() => ListWithTriageSchema.parse({ limit: 0 })).toThrow();
-      expect(() => ListWithTriageSchema.parse({ limit: 101 })).toThrow();
+      expect(() => ListWithTriageSchema.parse({ limit: 501 })).toThrow();
     });
 
     it("accepts all known priority filter values", () => {

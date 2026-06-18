@@ -526,9 +526,9 @@ describe("ToggleStarSchema", () => {
 // ─── ListWithTriageSchema ─────────────────────────────────────────────────────
 
 describe("ListWithTriageSchema", () => {
-  it("defaults limit to 50 and priority to all", () => {
+  it("defaults limit to 150 and priority to all", () => {
     const result = ListWithTriageSchema.parse({});
-    expect(result.limit).toBe(50);
+    expect(result.limit).toBe(150);
     expect(result.priority).toBe("all");
   });
 
@@ -536,8 +536,8 @@ describe("ListWithTriageSchema", () => {
     expect(() => ListWithTriageSchema.parse({ limit: 0 })).toThrow();
   });
 
-  it("rejects limit over 100", () => {
-    expect(() => ListWithTriageSchema.parse({ limit: 101 })).toThrow();
+  it("rejects limit over 500", () => {
+    expect(() => ListWithTriageSchema.parse({ limit: 501 })).toThrow();
   });
 
   it("accepts known priority filters", () => {

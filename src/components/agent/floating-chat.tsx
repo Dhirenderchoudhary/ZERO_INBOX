@@ -233,11 +233,12 @@ export function FloatingChat() {
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen(!open)}
         className={cn(
-          "fixed right-6 bottom-14 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-colors",
+          "fixed z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-colors",
           open
             ? "bg-muted-foreground hover:bg-muted-foreground/90 text-background"
             : "bg-primary hover:bg-primary/90 text-primary-foreground",
         )}
+        style={{ bottom: "2rem", right: "2rem" }}
       >
         {open ? <X size={24} /> : <MessageCircle size={24} />}
       </motion.button>

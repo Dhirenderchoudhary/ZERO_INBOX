@@ -30,9 +30,14 @@ function getAvatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length]!;
 }
 
-function formatEmailTime(dateStr: string | undefined): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
+function formatEmailTime(dateValue: string | number | undefined): string {
+  if (!dateValue) return "";
+  const d = new Date(
+    typeof dateValue === "string" && !isNaN(Number(dateValue))
+      ? Number(dateValue)
+      : dateValue,
+  );
+  if (isNaN(d.getTime())) return "";
   if (isToday(d)) return format(d, "h:mm a");
   if (isYesterday(d)) return "Yesterday";
   return format(d, "MMM d");
@@ -128,7 +133,9 @@ export function EmailRow({
             )}
             <span className="text-muted-foreground ml-auto shrink-0 font-mono text-[11px]">
               {formatEmailTime(
-                email?.data?.date ??
+                email?.data?.internalDate ??
+                  email?.internalDate ??
+                  email?.data?.date ??
                   email?.updated_at ??
                   new Date().toISOString(),
               )}

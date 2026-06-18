@@ -22,7 +22,6 @@ const COMMANDS = [
     items: [
       { icon: Mail, label: "Compose new email", hint: "C", event: "compose" },
       { icon: Plus, label: "New calendar event", hint: "", event: "new-event" },
-      { icon: Cpu, label: "AI Triage inbox", hint: "", event: "triage" },
       { icon: RefreshCw, label: "Refresh inbox", hint: "", event: "refresh" },
     ],
   },

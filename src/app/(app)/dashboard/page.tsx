@@ -28,10 +28,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const user = session?.user;
+
+  const { isError: isGmailError } = api.gmail.listWithTriage.useQuery({
+    limit: 1,
+  });
 
   useEffect(() => {
     const scrollToHash = () => {
@@ -68,7 +76,7 @@ export default function DashboardPage() {
       value: stats?.priorityThreads?.toString() ?? "0",
       trend: "urgent inbox items",
       icon: Inbox,
-      tone: "text-blue-500",
+      tone: "text-rose-500",
     },
     {
       label: "Reply obligations",
@@ -96,6 +104,19 @@ export default function DashboardPage() {
   return (
     <div className="h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
+        {isGmailError && (
+          <EmptyState
+            icon={Inbox}
+            title="Connect your Gmail"
+            description="Please link your Gmail account to unlock AI-powered triage, summaries, replies, and workflow automation."
+            action={{
+              label: "Connect Gmail",
+              onClick: () =>
+                (window.location.href = "/api/corsair/connect?plugin=gmail"),
+            }}
+          />
+        )}
+
         <section className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-sm">
           <div className="relative p-6 sm:p-8">
             <div className="bg-primary/10 absolute top-0 right-0 h-56 w-56 rounded-full blur-3xl" />
@@ -108,7 +129,11 @@ export default function DashboardPage() {
                   <Sparkles size={13} /> Morning command brief
                 </Badge>
                 <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Your communication system is under control.
+                  Welcome{" "}
+                  {user?.name?.split(" ")[0]
+                    ? `${user.name.split(" ")[0]}, `
+                    : ""}
+                  your communication system is under control.
                 </h2>
                 <p className="text-muted-foreground mt-3 text-base leading-7">
                   AI triage is filtering low-signal work, surfacing critical

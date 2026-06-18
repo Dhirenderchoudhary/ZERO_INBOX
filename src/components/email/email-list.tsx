@@ -59,7 +59,7 @@ export function EmailList() {
     isLoading,
     isError,
   } = api.gmail.listWithTriage.useQuery(
-    { limit: 20, priority: filter as any },
+    { limit: 50, priority: filter as any },
     { refetchInterval: 60_000, retry: false },
   );
 
@@ -119,17 +119,6 @@ export function EmailList() {
           </div>
           <div className="flex shrink-0 gap-2">
             <Button
-              onClick={() => triage.mutate()}
-              disabled={triage.isPending}
-              size="sm"
-              className="rounded-xl"
-            >
-              <Cpu
-                className={cn("size-4", triage.isPending && "animate-pulse")}
-              />
-              <span className="hidden sm:inline">Triage</span>
-            </Button>
-            <Button
               onClick={() => refresh.mutate()}
               disabled={refresh.isPending}
               variant="outline"
@@ -177,19 +166,12 @@ export function EmailList() {
               key={tab.key}
               onClick={() => updateFilter(tab.key)}
               className={cn(
-                "relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                "relative rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200",
                 filter === tab.key
-                  ? "text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
-              {filter === tab.key && (
-                <motion.div
-                  layoutId="active-tab"
-                  className="bg-primary absolute inset-0 rounded-full"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
               <span className="relative z-10">{tab.label}</span>
             </button>
           ))}
