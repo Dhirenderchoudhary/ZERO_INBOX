@@ -234,7 +234,7 @@ export default function LandingPage() {
           delay="0.5s"
         />
         <FloatingTechIcon
-          src="/zero-inbox-logo-120.png"
+          src="/corsair-logo.png"
           className="top-[50%] right-[4%]"
           delay="2s"
         />
@@ -277,8 +277,8 @@ export default function LandingPage() {
             <div className="flex items-center gap-3 sm:pl-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/zero-inbox-logo-120.png"
-                alt="ZERO INBOX Logo"
+                src="/corsair-logo.png"
+                alt="Corsair Logo"
                 className="size-10 object-contain drop-shadow-sm"
               />
               <div>
@@ -286,7 +286,7 @@ export default function LandingPage() {
                   Powered by
                 </p>
                 <p className="text-lg leading-none font-semibold text-neutral-950 dark:text-white">
-                  ZERO INBOX
+                  Corsair
                 </p>
               </div>
             </div>
