@@ -63,7 +63,7 @@ export const gmailRouter = createTRPCRouter({
       if (raw.length === 0) {
         try {
           const response = await tenant.gmail.api.messages.list({
-            maxResults: 15,
+            maxResults: 50,
           });
           const liveMessages = response.messages ?? [];
           const fetched = await Promise.allSettled(
@@ -87,8 +87,10 @@ export const gmailRouter = createTRPCRouter({
                 result.status === "fulfilled" && result.value !== null,
             )
             .map((result: any) => result.value) as any;
-        } catch (error) {
+        } catch (error: any) {
           console.error("Fallback sync failed", error);
+          // If the fallback fails, it usually means the user has not connected Gmail or tokens are invalid.
+          throw new Error("GMAIL_NOT_CONNECTED");
         }
       }
 
