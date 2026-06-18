@@ -62,7 +62,7 @@ export const billingRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // In production, use crypto to verify the signature here.
-      // For this hackathon/demo, we will assume verification success and update DB.
+      // For development, we will assume verification success and update DB.
 
       const userId = ctx.session.user.id;
       const oneMonthFromNow = new Date();

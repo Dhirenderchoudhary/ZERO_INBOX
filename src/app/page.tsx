@@ -41,7 +41,7 @@ const liveThreads = [
   },
   {
     from: "ChaiCode",
-    subject: "Hackathon judge sync",
+    subject: "Project architecture sync",
     priority: "Calendar",
     action: "Found 3 open slots tomorrow",
     tone: "bg-emerald-500",
@@ -653,7 +653,7 @@ function DashboardShowcase() {
                     Connected · Gmail, Calendar, Slack
                   </p>
                   <p className="text-sm leading-6 text-neutral-800 dark:text-neutral-200">
-                    Send a calendar invite and email to Garry Tan for Thursday
+                    Send a calendar invite and email to Hitesh for Thursday
                     morning. Prep the team too and see who can join.
                   </p>
                   <div className="mt-4 flex items-center justify-between">

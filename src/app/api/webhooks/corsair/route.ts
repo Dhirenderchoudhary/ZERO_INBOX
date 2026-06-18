@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         });
 
       // Pass through LLM for priority triage
-      // (Mock logic for the hackathon endpoint, actual logic requires invoking the LLM function)
+      // (Mock logic for the development endpoint, actual logic requires invoking the LLM function)
       const priority = (message.data.subject || "")
         .toLowerCase()
         .includes("urgent")
