@@ -10,6 +10,7 @@ import {
   Reply,
   Sparkles,
   Star,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -241,6 +242,15 @@ export function EmailDetail() {
           Thread
         </Badge>
         <div className="ml-auto flex items-center gap-1 overflow-x-auto">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-1 hidden lg:flex"
+            onClick={() => setSelectedId(null)}
+          >
+            <X size={18} />
+            <span className="sr-only">Close email</span>
+          </Button>
           <Button
             variant="ghost"
             size="sm"

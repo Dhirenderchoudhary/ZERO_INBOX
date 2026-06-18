@@ -127,6 +127,16 @@ Respond with ONLY the category word. Nothing else.`,
       const cached = await getAiSummaryCache(cacheKey);
       if (cached) return { summary: cached, fromCache: true };
 
+      if (
+        !process.env.OPENAI_API_KEY ||
+        process.env.OPENAI_API_KEY === "dummy_key_for_build"
+      ) {
+        const summary =
+          "This is a simulated AI summary because no OpenAI API Key was provided on Vercel. The email discusses important project updates and requires your attention.";
+        void setAiSummaryCache(cacheKey, summary);
+        return { summary, fromCache: false };
+      }
+
       const msg = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         max_tokens: 120,
@@ -153,6 +163,16 @@ Respond with ONLY the category word. Nothing else.`,
       const cacheKey = `${input.from}::${input.subject}`;
       const cached = await getAiDraftCache(cacheKey);
       if (cached) return { draft: cached, fromCache: true };
+
+      if (
+        !process.env.OPENAI_API_KEY ||
+        process.env.OPENAI_API_KEY === "dummy_key_for_build"
+      ) {
+        const draft =
+          "Hello,\n\nThank you for reaching out. I have received your email and will get back to you shortly.\n\nBest regards,\nZero Inbox User";
+        void setAiDraftCache(cacheKey, draft);
+        return { draft, fromCache: false };
+      }
 
       const msg = await openai.chat.completions.create({
         model: "gpt-4o-mini",

@@ -101,9 +101,18 @@ export async function triggerBackgroundTriage(
   const client = getQStashClient();
   if (!client) {
     console.warn(
-      "[qstash] QSTASH_TOKEN not configured — background triage skipped",
+      "[qstash] QSTASH_TOKEN not configured — falling back to direct fetch",
     );
-    return null;
+    // Fire and forget
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : env.NEXT_PUBLIC_APP_URL;
+    fetch(`${baseUrl}/api/qstash/triage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    }).catch(console.error);
+    return "direct-fetch-fallback";
   }
 
   const result = await client.publishJSON({

@@ -94,6 +94,36 @@ export const gmailRouter = createTRPCRouter({
         }
       }
 
+      // Auto-repair: If any message is missing headers (usually happens for live webhooks synced with minimal payloads), fetch them!
+      const missingHeaders = raw.filter((m: any) => {
+        const hasHeaders = m?.data?.payload?.headers || m?.payload?.headers;
+        const hasSubject = m?.data?.subject || m?.subject;
+        return !hasHeaders && !hasSubject;
+      });
+
+      if (missingHeaders.length > 0) {
+        await Promise.allSettled(
+          missingHeaders.map(async (msg: any) => {
+            if (!msg.entity_id) return;
+            try {
+              const full = await tenant.gmail.api.messages.get({
+                id: msg.entity_id,
+                format: "metadata",
+                metadataHeaders: ["From", "Subject", "Date"],
+              });
+              await tenant.gmail.db.messages.upsertByEntityId(
+                msg.entity_id,
+                full as any,
+              );
+            } catch (e) {
+              console.error("Failed to repair headers for", msg.entity_id);
+            }
+          }),
+        );
+        // Re-fetch local DB so shape perfectly matches
+        raw = await tenant.gmail.db.messages.list({ limit: input.limit });
+      }
+
       const messages = dedupeAndSort(raw) as Record<string, unknown>[];
       const entityIds = messages.map((m) => m.entity_id as string);
 
