@@ -59,8 +59,8 @@ export function EmailList() {
     isLoading,
     isError,
   } = api.gmail.listWithTriage.useQuery(
-    { limit: 50, priority: filter as any },
-    { refetchInterval: 60_000, retry: false },
+    { limit: 100, priority: filter as any },
+    { refetchInterval: 5_000, refetchOnWindowFocus: true, retry: false },
   );
 
   const { data: searchResults = [], isFetching: isSearching } =
