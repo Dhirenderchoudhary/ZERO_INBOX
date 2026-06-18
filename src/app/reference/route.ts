@@ -52,9 +52,15 @@ We securely process realtime events from **Corsair** and **Razorpay** to keep yo
         },
       ],
       tags: [
-        { name: "Webhooks", description: "Realtime push notification ingestion endpoints" },
+        {
+          name: "Webhooks",
+          description: "Realtime push notification ingestion endpoints",
+        },
         { name: "AI", description: "AI Processing and Intelligence APIs" },
-        { name: "tRPC", description: "Internal frontend-to-backend RPC definitions" },
+        {
+          name: "tRPC",
+          description: "Internal frontend-to-backend RPC definitions",
+        },
       ],
       components: {
         securitySchemes: {
@@ -65,9 +71,7 @@ We securely process realtime events from **Corsair** and **Razorpay** to keep yo
           },
         },
       },
-      security: [
-        { bearerAuth: [] },
-      ],
+      security: [{ bearerAuth: [] }],
       paths: {
         ...trpcOpenApiDocument.paths,
         "/api/speech-to-text": {
@@ -149,17 +153,19 @@ We securely process realtime events from **Corsair** and **Razorpay** to keep yo
           post: {
             tags: ["Background Jobs"],
             summary: "Delayed Email Sending Worker",
-            description: "Executed securely by Upstash QStash to send delayed/scheduled emails asynchronously.",
-            responses: { "200": { description: "Email sent" } }
-          }
+            description:
+              "Executed securely by Upstash QStash to send delayed/scheduled emails asynchronously.",
+            responses: { "200": { description: "Email sent" } },
+          },
         },
         "/api/qstash/triage": {
           post: {
             tags: ["Background Jobs"],
             summary: "AI Inbox Triage Worker",
-            description: "Executed securely by Upstash QStash to process bulk email triage using LLMs in the background without blocking the client.",
-            responses: { "200": { description: "Triage complete" } }
-          }
+            description:
+              "Executed securely by Upstash QStash to process bulk email triage using LLMs in the background without blocking the client.",
+            responses: { "200": { description: "Triage complete" } },
+          },
         },
         "/api/webhooks/razorpay": {
           post: {
@@ -194,29 +200,41 @@ We securely process realtime events from **Corsair** and **Razorpay** to keep yo
           post: {
             tags: ["Billing"],
             summary: "Create Razorpay Order",
-            description: "Initiates a new subscription order with Razorpay. Requires an authenticated session.",
+            description:
+              "Initiates a new subscription order with Razorpay. Requires an authenticated session.",
             requestBody: {
               content: {
                 "application/json": {
                   schema: {
                     type: "object",
                     properties: {
-                      amount: { type: "integer", description: "Amount in smallest currency unit (e.g., paise)" },
-                      currency: { type: "string", description: "ISO Currency Code" }
+                      amount: {
+                        type: "integer",
+                        description:
+                          "Amount in smallest currency unit (e.g., paise)",
+                      },
+                      currency: {
+                        type: "string",
+                        description: "ISO Currency Code",
+                      },
                     },
-                    required: ["amount"]
-                  }
-                }
-              }
+                    required: ["amount"],
+                  },
+                },
+              },
             },
-            responses: { "200": { description: "Order created successfully" }, "401": { description: "Unauthorized" } }
-          }
+            responses: {
+              "200": { description: "Order created successfully" },
+              "401": { description: "Unauthorized" },
+            },
+          },
         },
         "/api/verify-payment": {
           post: {
             tags: ["Billing"],
             summary: "Verify Razorpay Payment",
-            description: "Verifies the cryptographic signature of a completed Razorpay payment and provisions the subscription.",
+            description:
+              "Verifies the cryptographic signature of a completed Razorpay payment and provisions the subscription.",
             requestBody: {
               content: {
                 "application/json": {
@@ -226,15 +244,23 @@ We securely process realtime events from **Corsair** and **Razorpay** to keep yo
                       razorpay_payment_id: { type: "string" },
                       razorpay_order_id: { type: "string" },
                       razorpay_signature: { type: "string" },
-                      planId: { type: "string" }
+                      planId: { type: "string" },
                     },
-                    required: ["razorpay_payment_id", "razorpay_order_id", "razorpay_signature", "planId"]
-                  }
-                }
-              }
+                    required: [
+                      "razorpay_payment_id",
+                      "razorpay_order_id",
+                      "razorpay_signature",
+                      "planId",
+                    ],
+                  },
+                },
+              },
             },
-            responses: { "200": { description: "Subscription provisioned" }, "400": { description: "Invalid signature" } }
-          }
+            responses: {
+              "200": { description: "Subscription provisioned" },
+              "400": { description: "Invalid signature" },
+            },
+          },
         },
       },
     },

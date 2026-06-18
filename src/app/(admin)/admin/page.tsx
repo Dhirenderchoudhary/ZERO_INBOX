@@ -4,6 +4,8 @@ import { db } from "@/server/db";
 import { user, subscriptions, emailTriage } from "@/server/db/schema";
 import { sql } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminOverview() {
   // Fetch stats from DB
   const [totalUsersRes, totalSubsRes, totalEmailsRes] = await Promise.all([

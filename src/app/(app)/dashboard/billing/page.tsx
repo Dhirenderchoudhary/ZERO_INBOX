@@ -42,9 +42,9 @@ export default function BillingPage() {
   const handleUpgrade = async () => {
     setIsProcessing(true);
     try {
-      const order = await createOrder.mutateAsync({ 
+      const order = await createOrder.mutateAsync({
         amount: 9900,
-        currency: "INR" 
+        currency: "INR",
       });
 
       const options = {
