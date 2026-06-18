@@ -42,7 +42,10 @@ export default function BillingPage() {
   const handleUpgrade = async () => {
     setIsProcessing(true);
     try {
-      const order = await createOrder.mutateAsync({ planId: "pro" });
+      const order = await createOrder.mutateAsync({ 
+        amount: 9900,
+        currency: "INR" 
+      });
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_dummy",
@@ -53,9 +56,9 @@ export default function BillingPage() {
         order_id: order.orderId,
         handler: function (response: any) {
           verifyPayment.mutate({
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpayOrderId: response.razorpay_order_id,
-            razorpaySignature: response.razorpay_signature,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
             planId: "pro",
           });
         },
@@ -69,7 +72,7 @@ export default function BillingPage() {
         toast.error("Payment failed. Please try again.");
       });
       rzp.open();
-    } catch (_err) {
+    } catch {
       toast.error("Could not initiate checkout.");
     } finally {
       setIsProcessing(false);

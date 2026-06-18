@@ -16,10 +16,6 @@ import {
   ToggleStarSchema,
 } from "../../lib/schemas";
 import { scheduleEmailViaQStash } from "../../lib/qstash";
-import {
-  invalidateTriageCache,
-  invalidateDashboardCache,
-} from "../../lib/cache";
 import { triggerBackgroundTriage } from "../../lib/qstash";
 
 function enrichWithTriage(
@@ -115,7 +111,7 @@ export const gmailRouter = createTRPCRouter({
                 msg.entity_id,
                 full as any,
               );
-            } catch (e) {
+            } catch {
               console.error("Failed to repair headers for", msg.entity_id);
             }
           }),

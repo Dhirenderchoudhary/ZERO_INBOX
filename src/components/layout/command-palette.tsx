@@ -8,7 +8,6 @@ import {
   Calendar,
   Bot,
   Plus,
-  Cpu,
   RefreshCw,
   Inbox,
   Star,

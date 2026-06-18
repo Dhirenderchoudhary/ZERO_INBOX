@@ -38,7 +38,7 @@ export function FloatingChat() {
     if (historyQuery.data && messages.length === 0) {
       setMessages(historyQuery.data);
     }
-  }, [historyQuery.data]);
+  }, [historyQuery.data, messages.length]);
 
   const chat = api.ai.agentChat.useMutation({
     onSuccess: (data) => {

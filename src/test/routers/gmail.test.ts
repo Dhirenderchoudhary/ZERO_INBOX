@@ -2,12 +2,11 @@
  * Tests for Gmail tRPC router input validation.
  * Tests that UNAUTHORIZED is thrown without a session and validates input schemas.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   ListWithTriageSchema,
   SearchEmailSchema,
   SendEmailSchema,
-  SaveDraftSchema,
   ScheduledEmailSchema,
   SnoozeEmailSchema,
   ToggleStarSchema,

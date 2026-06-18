@@ -6,7 +6,6 @@ import {
   Bot,
   CalendarCheck,
   CheckCircle2,
-  Copy,
   Inbox,
   MailPlus,
   MessageSquareText,
@@ -23,7 +22,7 @@ import { useTheme } from "next-themes";
 import { signIn } from "@/lib/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const liveThreads = [
   {
@@ -121,7 +120,7 @@ export default function LandingPage() {
         setIsSigningIn(false);
         console.error("Sign-in error:", res.error);
       }
-    } catch (e) {
+    } catch {
       setIsSigningIn(false);
     }
   };

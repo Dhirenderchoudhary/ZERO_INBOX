@@ -4,14 +4,11 @@ import { useMemo, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  Bell,
   ChevronRight,
   Menu,
-  PanelLeftOpen,
   Search,
   Settings,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { CommandPalette } from "./command-palette";
@@ -21,8 +18,6 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { signOut } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,7 +47,6 @@ export function AppShell({
   user: any;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);

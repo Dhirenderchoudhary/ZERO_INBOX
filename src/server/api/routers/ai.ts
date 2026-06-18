@@ -32,7 +32,6 @@ import {
   setAiSummaryCache,
   getAiDraftCache,
   setAiDraftCache,
-  setEntityTriageCache,
   invalidateDashboardCache,
 } from "../../lib/cache";
 import { triggerBackgroundTriage } from "../../lib/qstash";
@@ -259,10 +258,7 @@ Rules:
       const messages: ChatMessage[] = [
         {
           role: "system",
-          content: `You are Zero Inbox, a state-of-the-art AI workflow and communication assistant. 
-You exist to help the user master their inbox, calendar, and daily tasks with unparalleled speed and accuracy. 
-When asked about emails or calendar events, use your specialized tool-calls seamlessly.
-Always respond in a professional, concise, and helpful tone.`,
+          content: systemPrompt,
         },
         ...input.history.map((h) => ({
           role: h.role,

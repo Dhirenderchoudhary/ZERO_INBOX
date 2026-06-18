@@ -7,7 +7,6 @@ import { NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { db } from "@/server/db";
 import { emailTriage } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
 import { getTenant } from "@/server/lib/tenant";
 import { dedupeAndSort } from "@/server/lib/dedup";
 import { PrioritySchema } from "@/server/lib/schemas";

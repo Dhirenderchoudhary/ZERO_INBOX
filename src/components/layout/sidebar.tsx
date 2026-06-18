@@ -15,7 +15,6 @@ import {
   Send,
   Settings,
   ShieldCheck,
-  Sparkles,
   Star,
   GitBranch,
   HardDrive,

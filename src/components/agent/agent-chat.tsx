@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/trpc/react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -40,7 +39,7 @@ export function AgentChat() {
     if (historyQuery.data && messages.length === 0) {
       setMessages(historyQuery.data);
     }
-  }, [historyQuery.data]);
+  }, [historyQuery.data, messages.length]);
 
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);

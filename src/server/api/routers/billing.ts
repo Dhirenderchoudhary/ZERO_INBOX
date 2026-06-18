@@ -1,9 +1,10 @@
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { z } from "zod";
 import Razorpay from "razorpay";
+import { z } from "zod";
 import { db } from "../../db";
 import { subscriptions, usage } from "../../db/schema";
 import { eq } from "drizzle-orm";
+import { CreateOrderSchema, VerifyPaymentSchema } from "../../lib/schemas";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_dummy",
@@ -33,16 +34,14 @@ export const billingRouter = createTRPCRouter({
   }),
 
   createOrder: protectedProcedure
-    .input(z.object({ planId: z.string().min(1) }))
+    .input(CreateOrderSchema)
     .mutation(async ({ input }) => {
-      // In a real app, calculate amount based on planId
-      const amount = input.planId === "pro" ? 9900 : 0; // ₹99
-
+      // Amount is already in the smallest currency unit (e.g. 9900 for ₹99) and validated by Zod
       try {
         const order = await razorpay.orders.create({
-          amount,
-          currency: "INR",
-          receipt: `rcpt_${Date.now()}`,
+          amount: input.amount,
+          currency: input.currency,
+          receipt: input.receipt || `rcpt_${Date.now()}`,
         });
 
         return {
@@ -57,12 +56,9 @@ export const billingRouter = createTRPCRouter({
 
   verifyPayment: protectedProcedure
     .input(
-      z.object({
-        razorpayPaymentId: z.string().min(1),
-        razorpayOrderId: z.string().min(1),
-        razorpaySignature: z.string().min(1),
+      VerifyPaymentSchema.extend({
         planId: z.string().min(1),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       // In production, use crypto to verify the signature here.
@@ -79,7 +75,7 @@ export const billingRouter = createTRPCRouter({
           planId: input.planId,
           status: "active",
           currentPeriodEnd: oneMonthFromNow,
-          razorpaySubscriptionId: input.razorpayOrderId,
+          razorpaySubscriptionId: input.razorpay_order_id,
         })
         .onConflictDoUpdate({
           target: subscriptions.id,

@@ -21,7 +21,6 @@ import {
   parseSenderEmail,
   parseSenderName,
 } from "@/server/lib/emailUtils";
-import { LoadingDots } from "@/components/ui/LoadingDots";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
