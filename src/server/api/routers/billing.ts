@@ -58,7 +58,7 @@ export const billingRouter = createTRPCRouter({
     .input(
       VerifyPaymentSchema.extend({
         planId: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       // In production, use crypto to verify the signature here.
