@@ -11,7 +11,7 @@ export const driveRouter = createTRPCRouter({
         orderBy: "modifiedTime desc",
         fields:
           "files(id, name, mimeType, modifiedTime, webViewLink, iconLink)",
-      });
+      } as any);
       return response.files ?? [];
     } catch (error: any) {
       console.error("Drive fetch error:", error?.message);
@@ -30,7 +30,7 @@ export const driveRouter = createTRPCRouter({
           orderBy: "modifiedTime desc",
           fields:
             "files(id, name, mimeType, modifiedTime, webViewLink, iconLink)",
-        });
+        } as any);
         return response.files ?? [];
       } catch (error: any) {
         console.error("Drive search error:", error?.message);
