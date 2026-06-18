@@ -24,6 +24,7 @@ setupCorsair(corsair, {
     gmail: {
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      topic_id: process.env.GMAIL_TOPIC_ID || "projects/dummy/topics/dummy",
     },
     googlecalendar: {
       client_id: process.env.GOOGLE_CLIENT_ID!,

@@ -8,6 +8,7 @@ import {
   Bot,
   Calendar,
   ChevronLeft,
+  ChevronRight,
   Edit3,
   Inbox,
   LifeBuoy,
@@ -75,43 +76,56 @@ export function Sidebar({
         collapsed ? "w-[84px]" : "w-[280px]",
       )}
     >
-      <div className="border-sidebar-border flex h-16 items-center gap-3 border-b px-4">
-        <Link
-          href={dashboardHref}
-          className="flex min-w-0 items-center gap-3"
-          onClick={onNavigate}
-        >
-          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 shadow-sm">
-            <Image
-              src="/zero-inbox-logo-120.png"
-              alt="ZERO INBOX"
-              width={36}
-              height={36}
-              className="object-cover"
-              priority
-            />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight">
-                ZERO_INBOX
-              </p>
-              <p className="text-muted-foreground truncate text-xs">
-                AI workflow command center
-              </p>
-            </div>
-          )}
-        </Link>
-        {!collapsed && onToggle && (
+      <div className="border-sidebar-border flex h-16 items-center border-b px-4">
+        {collapsed ? (
           <Button
             variant="ghost"
             size="icon-sm"
-            className="ml-auto hidden lg:inline-flex"
+            className="mx-auto hidden lg:inline-flex"
             onClick={onToggle}
+            title="Expand sidebar"
           >
-            <ChevronLeft size={15} />
-            <span className="sr-only">Collapse sidebar</span>
+            <ChevronRight size={15} />
+            <span className="sr-only">Expand sidebar</span>
           </Button>
+        ) : (
+          <>
+            <Link
+              href={dashboardHref}
+              className="flex min-w-0 flex-1 items-center gap-3"
+              onClick={onNavigate}
+            >
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 shadow-sm">
+                <Image
+                  src="/zero-inbox-logo-120.png"
+                  alt="ZERO INBOX"
+                  width={36}
+                  height={36}
+                  className="object-cover"
+                  priority
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold tracking-tight">
+                  ZERO_INBOX
+                </p>
+                <p className="text-muted-foreground truncate text-xs">
+                  AI workflow command center
+                </p>
+              </div>
+            </Link>
+            {onToggle && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="ml-auto hidden shrink-0 lg:inline-flex"
+                onClick={onToggle}
+              >
+                <ChevronLeft size={15} />
+                <span className="sr-only">Collapse sidebar</span>
+              </Button>
+            )}
+          </>
         )}
       </div>
 

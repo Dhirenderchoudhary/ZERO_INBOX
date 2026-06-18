@@ -6,6 +6,30 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
+function getAvatarColor(name: string): string {
+  const colors = [
+    "bg-red-500 text-white",
+    "bg-orange-500 text-white",
+    "bg-amber-500 text-white",
+    "bg-green-500 text-white",
+    "bg-emerald-500 text-white",
+    "bg-teal-500 text-white",
+    "bg-cyan-500 text-white",
+    "bg-blue-500 text-white",
+    "bg-indigo-500 text-white",
+    "bg-violet-500 text-white",
+    "bg-purple-500 text-white",
+    "bg-fuchsia-500 text-white",
+    "bg-pink-500 text-white",
+    "bg-rose-500 text-white",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length]!;
+}
+
 function formatEmailTime(dateStr: string | undefined): string {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -71,7 +95,12 @@ export function EmailRow({
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="bg-muted text-muted-foreground relative flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
+        <div
+          className={cn(
+            "relative flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+            getAvatarColor(sender),
+          )}
+        >
           {sender.charAt(0).toUpperCase()}
           {isUnread && (
             <span className="ring-card absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-blue-500 ring-2" />

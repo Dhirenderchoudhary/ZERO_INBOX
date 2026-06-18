@@ -57,7 +57,7 @@ export const gmailRouter = createTRPCRouter({
     .input(ListWithTriageSchema)
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
-      let raw = await tenant.gmail.db.messages.list({ limit: 50 });
+      let raw = await tenant.gmail.db.messages.list({ limit: input.limit });
 
       // Fallback: If DB is empty (e.g. first login), synchronously fetch a quick batch to prevent bad UX
       if (raw.length === 0) {
@@ -179,7 +179,25 @@ export const gmailRouter = createTRPCRouter({
         }
       }
 
-      return enriched.slice(0, input.limit);
+      const finalEnriched = enriched.slice(0, input.limit).map((msg: any) => {
+        const stripped = { ...msg };
+        if (stripped.data?.payload) {
+          stripped.data = {
+            ...stripped.data,
+            payload: { ...stripped.data.payload },
+          };
+          delete stripped.data.payload.parts;
+          delete stripped.data.payload.body;
+        }
+        if (stripped.payload) {
+          stripped.payload = { ...stripped.payload };
+          delete stripped.payload.parts;
+          delete stripped.payload.body;
+        }
+        return stripped;
+      });
+
+      return finalEnriched;
     }),
 
   search: protectedProcedure
@@ -190,7 +208,24 @@ export const gmailRouter = createTRPCRouter({
         data: { snippet: { contains: input.query } },
         limit: input.limit,
       });
-      return dedupeAndSort(results);
+      const sorted = dedupeAndSort(results);
+      return sorted.map((msg: any) => {
+        const stripped = { ...msg };
+        if (stripped.data?.payload) {
+          stripped.data = {
+            ...stripped.data,
+            payload: { ...stripped.data.payload },
+          };
+          delete stripped.data.payload.parts;
+          delete stripped.data.payload.body;
+        }
+        if (stripped.payload) {
+          stripped.payload = { ...stripped.payload };
+          delete stripped.payload.parts;
+          delete stripped.payload.body;
+        }
+        return stripped;
+      });
     }),
 
   getOne: protectedProcedure

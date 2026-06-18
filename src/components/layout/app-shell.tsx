@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -33,6 +33,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useKeyboard } from "@/hooks/useKeyboard";
 import { GlobalCompose } from "@/components/email/GlobalCompose";
+import { CreateEventModal } from "@/components/calendar/create-event-modal";
+import { FloatingChat } from "@/components/agent/floating-chat";
 import { cn } from "@/lib/utils";
 
 const pageCopy: Record<string, { title: string; eyebrow: string }> = {
@@ -53,7 +55,28 @@ export function AppShell({
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false);
   useKeyboard();
+
+  useEffect(() => {
+    const handleNewEvent = () => setShowEventModal(true);
+    window.addEventListener("new-event", handleNewEvent);
+
+    const savedState = localStorage.getItem("sidebar-collapsed");
+    if (savedState !== null) {
+      setCollapsed(savedState === "true");
+    }
+
+    return () => window.removeEventListener("new-event", handleNewEvent);
+  }, []);
+
+  const handleToggleSidebar = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("sidebar-collapsed", String(next));
+      return next;
+    });
+  };
 
   const page = useMemo(() => {
     const key = pathname.split("/").find(Boolean) || "dashboard";
@@ -65,7 +88,7 @@ export function AppShell({
       <div className="hidden shrink-0 lg:block">
         <Sidebar
           collapsed={collapsed}
-          onToggle={() => setCollapsed((value) => !value)}
+          onToggle={handleToggleSidebar}
           user={user}
         />
       </div>
@@ -90,7 +113,7 @@ export function AppShell({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass-panel z-30 flex h-16 shrink-0 items-center gap-3 border-x-0 border-t-0 px-4 lg:px-6">
+        <header className="bg-bg-surface border-border-subtle z-30 flex h-16 shrink-0 items-center gap-3 border-b px-4 lg:px-6">
           <Button
             variant="ghost"
             size="icon"
@@ -114,11 +137,16 @@ export function AppShell({
 
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("cmd-k"))}
-            className="border-border bg-background/50 text-muted-foreground hover:bg-muted/80 hidden h-9 w-full max-w-[280px] items-center gap-2 rounded-lg border px-3 text-sm shadow-sm transition-colors md:flex"
+            className="group border-border/50 bg-background/40 hover:bg-background/80 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:ring-primary/20 hidden h-9 w-full max-w-[280px] items-center gap-2 rounded-full border px-3 text-sm shadow-sm backdrop-blur-md transition-all hover:ring-2 md:flex"
           >
-            <Search size={14} />
-            <span className="flex-1 text-left">Search everything...</span>
-            <kbd className="bg-muted text-muted-foreground rounded border border-b-2 px-1.5 py-0.5 font-mono text-[10px] font-semibold">
+            <Search
+              size={14}
+              className="opacity-70 transition-opacity group-hover:opacity-100"
+            />
+            <span className="flex-1 text-left font-medium">
+              Search everything...
+            </span>
+            <kbd className="bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20 rounded-md border border-b-2 px-1.5 py-0.5 font-mono text-[10px] font-semibold transition-colors">
               ⌘K
             </kbd>
           </button>
@@ -145,7 +173,7 @@ export function AppShell({
         </header>
 
         <motion.main
-          className="min-h-0 flex-1 overflow-hidden"
+          className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.16 }}
@@ -157,6 +185,10 @@ export function AppShell({
       <CommandPalette />
       <ShortcutsModal />
       <GlobalCompose />
+      {showEventModal && (
+        <CreateEventModal onClose={() => setShowEventModal(false)} />
+      )}
+      <FloatingChat />
       <ToastProvider />
     </div>
   );

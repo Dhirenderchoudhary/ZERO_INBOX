@@ -30,7 +30,7 @@ export default function PricingPage() {
             For power users and founders.
           </p>
           <p className="my-6 text-5xl font-bold">
-            $20
+            ₹100
             <span className="text-muted-foreground text-lg font-normal">
               /mo
             </span>

@@ -71,7 +71,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          await setupCorsair(corsair, { tenantId: user.id });
+          void setupCorsair(corsair, { tenantId: user.id });
         },
       },
     },
@@ -87,7 +87,7 @@ export const auth = betterAuth({
       create: {
         after: async (account) => {
           if (account.providerId === "google") {
-            await syncGoogleTokens(account);
+            void syncGoogleTokens(account);
 
             // Fire and forget a background sync for the new user's inbox
             // Uses Upstash Workflow for durable execution
@@ -98,7 +98,7 @@ export const auth = betterAuth({
       update: {
         after: async (account) => {
           if (account.providerId === "google") {
-            await syncGoogleTokens(account);
+            void syncGoogleTokens(account);
           }
         },
       },

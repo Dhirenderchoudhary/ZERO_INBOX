@@ -152,7 +152,7 @@ export const SummarizeEmailSchema = z.object({
 export const DraftReplySchema = SummarizeEmailSchema;
 
 export const ListWithTriageSchema = z.object({
-  limit: z.number().int().min(1).max(100).default(50),
+  limit: z.number().int().min(1).max(500).default(150),
   priority: PriorityFilterSchema,
 });
 

@@ -51,6 +51,8 @@ export function EmailList() {
     }
   };
 
+  const markRead = api.gmail.markRead.useMutation();
+
   const {
     data: emails = [],
     refetch,
@@ -269,6 +271,10 @@ export function EmailList() {
                 onClick={() => {
                   setSelectedId(email.entity_id);
                   setFocusedIdx(idx);
+                  if (!email.isRead) {
+                    markRead.mutate(email.entity_id);
+                    email.isRead = true; // Optimistic update
+                  }
                 }}
               />
             ))}

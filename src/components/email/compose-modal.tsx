@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Send, X } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { api } from "@/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,29 @@ export function ComposeModal({ replyTo, onClose }: ComposeModalProps) {
   const [subject, setSubject] = useState(replyTo ? replyTo.subject : "");
   const [body, setBody] = useState(replyTo?.body ?? "");
 
-  const send = api.gmail.send.useMutation({ onSuccess: () => onClose() });
+  const send = api.gmail.send.useMutation({
+    onSuccess: () => {
+      toast.success("Message sent");
+      onClose();
+    },
+    onError: (error) => {
+      if (
+        error.message.toLowerCase().includes("permission") ||
+        error.message.toLowerCase().includes("auth") ||
+        error.message.toLowerCase().includes("credential")
+      ) {
+        toast.error("Please connect Gmail to send emails.", {
+          action: {
+            label: "Connect",
+            onClick: () =>
+              (window.location.href = "/api/corsair/connect?plugin=gmail"),
+          },
+        });
+      } else {
+        toast.error("Failed to send message: " + error.message);
+      }
+    },
+  });
 
   useEffect(() => {
     const handleClose = () => onClose();

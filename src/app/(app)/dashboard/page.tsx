@@ -65,28 +65,28 @@ export default function DashboardPage() {
   const kpis = [
     {
       label: "Priority threads",
-      value: stats?.priorityThreads?.toString() ?? "-",
+      value: stats?.priorityThreads?.toString() ?? "0",
       trend: "urgent inbox items",
       icon: Inbox,
       tone: "text-blue-500",
     },
     {
       label: "Reply obligations",
-      value: stats?.replyObligations?.toString() ?? "-",
+      value: stats?.replyObligations?.toString() ?? "0",
       trend: "needs reply",
       icon: Clock3,
       tone: "text-amber-500",
     },
     {
       label: "Meetings automated",
-      value: stats?.meetingsAutomated?.toString() ?? "-",
+      value: stats?.meetingsAutomated?.toString() ?? "0",
       trend: "total scheduled",
       icon: CalendarCheck,
       tone: "text-emerald-500",
     },
     {
       label: "AI actions",
-      value: stats?.aiActions?.toString() ?? "-",
+      value: stats?.aiActions?.toString() ?? "0",
       trend: "messages used",
       icon: Bot,
       tone: "text-violet-500",
@@ -237,8 +237,7 @@ export default function DashboardPage() {
                   size="sm"
                   className="w-full text-xs"
                   onClick={() => {
-                    const subject = prompt("Meeting Title:");
-                    if (subject) toast.success("Calendar invite sent!");
+                    window.dispatchEvent(new CustomEvent("new-event"));
                   }}
                 >
                   <Plus className="mr-2 h-3 w-3" /> New Meeting

@@ -28,7 +28,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { SnoozeMenu } from "./SnoozeMenu";
-import { ComposeModal } from "./compose-modal";
 
 function linkify(text: string): string {
   return text.replace(
@@ -38,11 +37,10 @@ function linkify(text: string): string {
 }
 
 export function EmailDetail() {
-  const { selectedId, setSelectedId } = useEmailStore();
+  const { selectedId, setSelectedId, setComposeOpen, setReplyTo } =
+    useEmailStore();
   const [showSnooze, setShowSnooze] = useState(false);
-  const [showReply, setShowReply] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
-  const [draftBody, setDraftBody] = useState("");
   const markedReadIdsRef = useRef(new Set<string>());
   const markReadMutateRef = useRef<
     ReturnType<typeof api.gmail.markRead.useMutation>["mutate"] | null
@@ -131,8 +129,12 @@ export function EmailDetail() {
   });
   const draftReply = api.ai.draftReply.useMutation({
     onSuccess: (d) => {
-      setDraftBody(d.draft);
-      setShowReply(true);
+      setReplyTo({
+        from,
+        subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
+        body: d.draft,
+      });
+      setComposeOpen(true);
     },
   });
 
@@ -142,8 +144,6 @@ export function EmailDetail() {
 
   useEffect(() => {
     setAiSummary("");
-    setShowReply(false);
-    setDraftBody("");
   }, [selectedId]);
 
   useEffect(() => {
@@ -164,9 +164,9 @@ export function EmailDetail() {
       const e = email;
       if (!e) return;
       draftReply.mutate({
-        subject,
-        from,
-        body,
+        subject: subject || "",
+        from: from || "",
+        body: (body || "").slice(0, 8000),
       });
     };
     const onStar = () => {
@@ -187,7 +187,7 @@ export function EmailDetail() {
 
   if (!selectedId) {
     return (
-      <section className="border-border/70 bg-card hidden min-h-0 rounded-2xl border shadow-sm lg:flex">
+      <section className="border-border/70 bg-card hidden h-full w-full min-w-0 rounded-2xl border shadow-sm lg:flex">
         <EmptyState
           icon={ArrowLeft}
           title="Select a message"
@@ -245,7 +245,13 @@ export function EmailDetail() {
             variant="ghost"
             size="sm"
             className="rounded-xl"
-            onClick={() => summarize.mutate({ subject, from, body })}
+            onClick={() =>
+              summarize.mutate({
+                subject: subject || "",
+                from: from || "",
+                body: (body || "").slice(0, 8000),
+              })
+            }
             disabled={summarize.isPending}
           >
             {summarize.isPending ? (
@@ -259,7 +265,14 @@ export function EmailDetail() {
             variant="ghost"
             size="sm"
             className="rounded-xl"
-            onClick={() => setShowReply(true)}
+            onClick={() => {
+              setReplyTo({
+                from,
+                subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
+                body: "",
+              });
+              setComposeOpen(true);
+            }}
           >
             <Reply className="size-4" /> Reply
           </Button>
@@ -374,17 +387,6 @@ export function EmailDetail() {
           )}
         </article>
       </div>
-
-      {showReply && (
-        <ComposeModal
-          replyTo={{
-            from,
-            subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
-            body: draftBody,
-          }}
-          onClose={() => setShowReply(false)}
-        />
-      )}
     </motion.section>
   );
 }
