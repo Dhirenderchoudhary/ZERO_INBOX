@@ -284,8 +284,12 @@ export const AISendEmailSchema = z.object({
 export const AICreateEventSchema = z.object({
   summary: z.string().min(1, "Event summary is required"),
   description: z.string().optional().default(""),
-  startTime: z.string().datetime("Invalid start time ISO 8601 string"),
-  endTime: z.string().datetime("Invalid end time ISO 8601 string"),
+  startTime: z
+    .string()
+    .refine((v) => !isNaN(Date.parse(v)), "Invalid start time ISO 8601 string"),
+  endTime: z
+    .string()
+    .refine((v) => !isNaN(Date.parse(v)), "Invalid end time ISO 8601 string"),
   attendees: z
     .array(z.string().email("Invalid attendee email"))
     .optional()
