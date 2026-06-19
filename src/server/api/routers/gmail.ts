@@ -73,13 +73,10 @@ export const gmailRouter = createTRPCRouter({
               if (!msg.id) return;
               const full = await tenant.gmail.api.messages.get({
                 id: msg.id,
-                format: "metadata",
-                metadataHeaders: ["From", "Subject", "Date"],
+                format: "full",
               });
-              await tenant.gmail.db.messages.upsertByEntityId(
-                msg.id,
-                full as any,
-              );
+              const parsed = parseRawGoogleMessage(full);
+              await tenant.gmail.db.messages.upsertByEntityId(msg.id, parsed);
             }),
           );
           // Re-query local DB so shape perfectly matches the rest of the application
@@ -104,12 +101,12 @@ export const gmailRouter = createTRPCRouter({
             try {
               const full = await tenant.gmail.api.messages.get({
                 id: msg.entity_id,
-                format: "metadata",
-                metadataHeaders: ["From", "Subject", "Date"],
+                format: "full",
               });
+              const parsed = parseRawGoogleMessage(full);
               await tenant.gmail.db.messages.upsertByEntityId(
                 msg.entity_id,
-                full as any,
+                parsed,
               );
             } catch {
               console.error("Failed to repair headers for", msg.entity_id);
