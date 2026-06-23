@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { format } from "date-fns";
+import Script from "next/script";
 
 declare global {
   interface Window {
@@ -24,6 +25,7 @@ declare global {
 
 export default function BillingPage() {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
   const trpcUtils = api.useUtils();
 
   const { data: subData, isLoading } = api.billing.getSubscription.useQuery();
@@ -40,6 +42,11 @@ export default function BillingPage() {
   });
 
   const handleUpgrade = async () => {
+    if (!isRazorpayLoaded || !window.Razorpay) {
+      toast.error("Payment checkout is still loading. Try again in a moment.");
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const order = await createOrder.mutateAsync({
@@ -206,17 +213,30 @@ export default function BillingPage() {
               <Button
                 className="w-full bg-indigo-500 text-white hover:bg-indigo-600"
                 onClick={handleUpgrade}
-                disabled={isProcessing || createOrder.isPending}
+                disabled={
+                  isProcessing || createOrder.isPending || !isRazorpayLoaded
+                }
               >
-                {isProcessing ? "Processing..." : "Upgrade to Pro"}
+                {isProcessing
+                  ? "Processing..."
+                  : isRazorpayLoaded
+                    ? "Upgrade to Pro"
+                    : "Loading checkout..."}
               </Button>
             )}
           </CardFooter>
         </Card>
       </div>
 
-      {/* Razorpay Script injection */}
-      <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="afterInteractive"
+        onLoad={() => setIsRazorpayLoaded(true)}
+        onError={() => {
+          setIsRazorpayLoaded(false);
+          toast.error("Payment checkout failed to load.");
+        }}
+      />
     </div>
   );
 }
