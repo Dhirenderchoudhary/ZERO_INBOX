@@ -52,6 +52,14 @@ export function EmailList() {
   };
 
   const markRead = api.gmail.markRead.useMutation();
+  const { data: connectionStatus } = api.gmail.connectionStatus.useQuery(
+    undefined,
+    {
+      staleTime: 30_000,
+      retry: false,
+    },
+  );
+  const needsGmailReconnect = connectionStatus?.connected === false;
 
   const {
     data: emails = [],
@@ -60,7 +68,12 @@ export function EmailList() {
     isError,
   } = api.gmail.listWithTriage.useQuery(
     { limit: 100, priority: filter as any },
-    { refetchInterval: 5_000, refetchOnWindowFocus: true, retry: false },
+    {
+      refetchInterval: 60_000,
+      refetchOnWindowFocus: false,
+      staleTime: 30_000,
+      retry: false,
+    },
   );
 
   const { data: searchResults = [], isFetching: isSearching } =
@@ -71,8 +84,37 @@ export function EmailList() {
 
   const displayed = search.length > 1 ? searchResults : emails;
 
+  useEffect(() => {
+    if (
+      search.length > 1 ||
+      filter !== "all" ||
+      isLoading ||
+      emails.length > 0 ||
+      needsGmailReconnect
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void refetch();
+    }, 2500);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    emails.length,
+    filter,
+    isLoading,
+    needsGmailReconnect,
+    refetch,
+    search.length,
+  ]);
+
   const refresh = api.gmail.refresh.useMutation({
     onSuccess: (d) => {
+      if (d.needsReconnect) {
+        toast.error("Reconnect Gmail to refresh your inbox");
+        return;
+      }
       refetch();
       toast.success(`Synced ${d.synced} threads from Gmail`);
     },
@@ -192,6 +234,17 @@ export function EmailList() {
             description="Link Gmail to unlock AI-powered triage, summaries, replies, and workflow automation."
             action={{
               label: "Connect Gmail",
+              onClick: () =>
+                (window.location.href = "/api/corsair/connect?plugin=gmail"),
+            }}
+          />
+        ) : needsGmailReconnect ? (
+          <EmptyState
+            icon={Inbox}
+            title="Reconnect your Gmail"
+            description="Google did not provide a Gmail refresh token for this session. Reconnect once so Zero Inbox can sync mail in the background."
+            action={{
+              label: "Reconnect Gmail",
               onClick: () =>
                 (window.location.href = "/api/corsair/connect?plugin=gmail"),
             }}

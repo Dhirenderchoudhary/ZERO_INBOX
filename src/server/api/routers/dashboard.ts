@@ -3,7 +3,6 @@ import { db } from "../../db";
 import { emailTriage, agentMessages, usage } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getDashboardCache, setDashboardCache } from "../../lib/cache";
-import { getTenant } from "../../lib/tenant";
 
 export const dashboardRouter = createTRPCRouter({
   getStats: protectedProcedure.query(async ({ ctx }) => {
@@ -103,21 +102,6 @@ export const dashboardRouter = createTRPCRouter({
       )
       .orderBy(sql`${agentMessages.createdAt} DESC`)
       .limit(5);
-
-    if (recentActions.length === 0) {
-      // Fallback to recent real emails
-      const tenant = getTenant(userId);
-      const recentEmails = await tenant.gmail.db.messages.list({ limit: 5 });
-      if (recentEmails && recentEmails.length > 0) {
-        recentActions.push(
-          ...recentEmails.map((e: any) => ({
-            id: e.id || e.entity_id,
-            content: `Received: ${e.data?.subject || e.subject || "(No subject)"}`,
-            createdAt: new Date(e.data?.date || e.date || new Date()),
-          })),
-        );
-      }
-    }
 
     const statsToCache = {
       priorityThreads,

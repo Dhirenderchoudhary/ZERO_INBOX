@@ -3,8 +3,15 @@ import { getTenant } from "../../lib/tenant";
 import { encodeRawEmail, parseRawGoogleMessage } from "../../lib/emailUtils";
 import { dedupeAndSort } from "../../lib/dedup";
 import { db } from "../../db";
-import { emailTriage, scheduledEmails, cachedEmails } from "../../db/schema";
-import { inArray, eq } from "drizzle-orm";
+import {
+  emailTriage,
+  scheduledEmails,
+  cachedEmails,
+  corsairAccounts,
+  corsairIntegrations,
+  corsairEntities,
+} from "../../db/schema";
+import { and, desc, inArray, eq, sql } from "drizzle-orm";
 import {
   EntityIdSchema,
   ListWithTriageSchema,
@@ -17,6 +24,162 @@ import {
 } from "../../lib/schemas";
 import { scheduleEmailViaQStash } from "../../lib/qstash";
 import { triggerBackgroundTriage } from "../../lib/qstash";
+import { invalidateTriageCache } from "../../lib/cache";
+import {
+  hasGmailRefreshToken,
+  isCorsairAuthMissingError,
+} from "../../lib/google-auth";
+
+const GMAIL_CACHE_TTL_MS = 3 * 60 * 1000;
+const GMAIL_FIRST_PAGE_SIZE = 30;
+
+type CachedCorsairMessage = {
+  entity_id: string;
+  updated_at: Date;
+  data: Record<string, unknown>;
+};
+
+function getHeaderValue(headers: unknown, name: string): string | undefined {
+  if (!Array.isArray(headers)) return undefined;
+  const header = headers.find(
+    (h) =>
+      typeof h === "object" &&
+      h !== null &&
+      "name" in h &&
+      String(h.name).toLowerCase() === name.toLowerCase(),
+  ) as { value?: unknown } | undefined;
+  return typeof header?.value === "string" ? header.value : undefined;
+}
+
+async function getGmailAccountId(tenantId: string): Promise<string | null> {
+  const [account] = await db
+    .select({ id: corsairAccounts.id })
+    .from(corsairAccounts)
+    .innerJoin(
+      corsairIntegrations,
+      eq(corsairAccounts.integrationId, corsairIntegrations.id),
+    )
+    .where(
+      and(
+        eq(corsairAccounts.tenantId, tenantId),
+        eq(corsairIntegrations.name, "gmail"),
+      ),
+    )
+    .limit(1);
+
+  return account?.id ?? null;
+}
+
+async function listCachedInboxMessages(
+  tenantId: string,
+  limit: number,
+): Promise<CachedCorsairMessage[]> {
+  const accountId = await getGmailAccountId(tenantId);
+  if (!accountId) return [];
+
+  const rows = await db
+    .select()
+    .from(corsairEntities)
+    .where(
+      and(
+        eq(corsairEntities.accountId, accountId),
+        sql`${corsairEntities.data}->'labelIds' @> '["INBOX"]'::jsonb`,
+      ),
+    )
+    .orderBy(
+      desc(
+        sql`coalesce((${corsairEntities.data}->>'internalDate')::bigint, extract(epoch from ${corsairEntities.updatedAt})::bigint * 1000)`,
+      ),
+    )
+    .limit(limit);
+
+  const newest = rows.reduce(
+    (max, row) => Math.max(max, new Date(row.updatedAt).getTime()),
+    0,
+  );
+  if (newest > 0 && Date.now() - newest > GMAIL_CACHE_TTL_MS) {
+    void triggerBackgroundTriage(tenantId);
+  }
+
+  return rows.map((row) => {
+    const data = row.data;
+    const payload = data.payload as { headers?: unknown } | undefined;
+    const subject = data.subject ?? getHeaderValue(payload?.headers, "subject");
+    const from = data.from ?? getHeaderValue(payload?.headers, "from");
+    const date = data.date ?? getHeaderValue(payload?.headers, "date");
+
+    return {
+      entity_id: row.entityId,
+      updated_at: row.updatedAt,
+      data: {
+        ...data,
+        ...(subject ? { subject } : {}),
+        ...(from ? { from } : {}),
+        ...(date ? { date } : {}),
+      },
+    };
+  });
+}
+
+async function fetchMetadataBatch(
+  tenant: ReturnType<typeof getTenant>,
+  limit: number,
+  q?: string,
+) {
+  const response = await tenant.gmail.api.messages.list({
+    maxResults: Math.min(limit, 50),
+    ...(q ? { q } : { labelIds: ["INBOX"] }),
+  });
+  const liveMessages = response.messages ?? [];
+
+  const fetched = await Promise.allSettled(
+    liveMessages.map(async (msg) => {
+      if (!msg.id) return null;
+      const metadata = await tenant.gmail.api.messages.get({
+        id: msg.id,
+        format: "metadata",
+      });
+      const parsed = parseRawGoogleMessage(metadata);
+      await tenant.gmail.db.messages.upsertByEntityId(msg.id, parsed);
+      return {
+        entity_id: msg.id,
+        updated_at: new Date(),
+        data: parsed as Record<string, unknown>,
+      };
+    }),
+  );
+
+  return fetched.flatMap((result) => {
+    if (result.status !== "fulfilled" || !result.value) return [];
+    return [result.value];
+  });
+}
+
+async function repairMissingMetadata(
+  tenant: ReturnType<typeof getTenant>,
+  messages: CachedCorsairMessage[],
+  maxToRepair = 15,
+) {
+  const repaired = new Map<string, CachedCorsairMessage>();
+
+  await Promise.allSettled(
+    messages.slice(0, maxToRepair).map(async (msg) => {
+      const metadata = await tenant.gmail.api.messages.get({
+        id: msg.entity_id,
+        format: "metadata",
+      });
+      const parsed = parseRawGoogleMessage(metadata);
+      await tenant.gmail.db.messages.upsertByEntityId(msg.entity_id, parsed);
+      repaired.set(msg.entity_id, {
+        entity_id: msg.entity_id,
+        updated_at: new Date(),
+        data: parsed as Record<string, unknown>,
+      });
+    }),
+  );
+
+  return messages.map((msg) => repaired.get(msg.entity_id) ?? msg);
+}
 
 function enrichWithTriage(
   messages: Record<string, unknown>[],
@@ -50,44 +213,32 @@ function enrichWithTriage(
 }
 
 export const gmailRouter = createTRPCRouter({
+  connectionStatus: protectedProcedure.query(async ({ ctx }) => {
+    const connected = await hasGmailRefreshToken(ctx.session.user.id);
+    return { connected };
+  }),
+
   listWithTriage: protectedProcedure
     .input(ListWithTriageSchema)
     .query(async ({ input, ctx }) => {
       const tenant = getTenant(ctx.session.user.id);
-      let raw = await tenant.gmail.db.messages.list({ limit: input.limit });
+      let raw =
+        input.priority === "sent" || input.priority === "starred"
+          ? await tenant.gmail.db.messages.list({ limit: input.limit })
+          : await listCachedInboxMessages(ctx.session.user.id, input.limit);
 
-      // Fallback: If DB is empty, fetch a tiny metadata batch synchronously, and offload the rest
       if (raw.length === 0) {
-        try {
-          // Trigger the background worker to fetch everything else asynchronously safely via QStash helper
-          void triggerBackgroundTriage(ctx.session.user.id);
-
-          const response = await tenant.gmail.api.messages.list({
-            maxResults: 15,
-          });
-          const liveMessages = response.messages ?? [];
-
-          // Only fetch minimal metadata headers for extreme speed
-          await Promise.allSettled(
-            liveMessages.map(async (msg) => {
-              if (!msg.id) return;
-              const full = await tenant.gmail.api.messages.get({
-                id: msg.id,
-                format: "full",
-              });
-              const parsed = parseRawGoogleMessage(full);
-              await tenant.gmail.db.messages.upsertByEntityId(msg.id, parsed);
-            }),
-          );
-          // Re-query local DB so shape perfectly matches the rest of the application
-          raw = await tenant.gmail.db.messages.list({ limit: 15 });
-        } catch (error: any) {
-          console.error("Fallback sync failed", error);
-          throw new Error("GMAIL_NOT_CONNECTED");
-        }
+        raw = await tenant.gmail.db.messages.list({ limit: input.limit });
       }
 
-      // Auto-repair: If any message is missing headers (usually happens for live webhooks synced with minimal payloads), fetch them!
+      if (
+        input.priority === "all" &&
+        raw.length < Math.min(input.limit, GMAIL_FIRST_PAGE_SIZE)
+      ) {
+        void triggerBackgroundTriage(ctx.session.user.id);
+      }
+
+      // Keep list rendering cache-first. Missing metadata is repaired in the background.
       const missingHeaders = raw.filter((m: any) => {
         const hasHeaders = m?.data?.payload?.headers || m?.payload?.headers;
         const hasSubject = m?.data?.subject || m?.subject;
@@ -95,26 +246,13 @@ export const gmailRouter = createTRPCRouter({
       });
 
       if (missingHeaders.length > 0) {
-        await Promise.allSettled(
-          missingHeaders.map(async (msg: any) => {
-            if (!msg.entity_id) return;
-            try {
-              const full = await tenant.gmail.api.messages.get({
-                id: msg.entity_id,
-                format: "full",
-              });
-              const parsed = parseRawGoogleMessage(full);
-              await tenant.gmail.db.messages.upsertByEntityId(
-                msg.entity_id,
-                parsed,
-              );
-            } catch {
-              console.error("Failed to repair headers for", msg.entity_id);
-            }
-          }),
+        void repairMissingMetadata(
+          tenant,
+          raw as CachedCorsairMessage[],
+          15,
+        ).catch((error) =>
+          console.warn("Background metadata repair failed", error),
         );
-        // Re-fetch local DB so shape perfectly matches
-        raw = await tenant.gmail.db.messages.list({ limit: input.limit });
       }
 
       const messages = dedupeAndSort(raw) as Record<string, unknown>[];
@@ -163,42 +301,19 @@ export const gmailRouter = createTRPCRouter({
         (input.priority === "starred" || input.priority === "sent")
       ) {
         try {
-          const query = input.priority === "starred" ? "is:starred" : "in:sent";
-          const response = await tenant.gmail.api.messages.list({
-            maxResults: 15,
-            q: query,
-          });
-          const liveMessages = response.messages ?? [];
-          const fetched = await Promise.allSettled(
-            liveMessages.map(async (msg) => {
-              if (!msg.id) return null;
-              const full = await tenant.gmail.api.messages.get({
-                id: msg.id,
-                format: "metadata",
-              });
-              void tenant.gmail.db.messages.upsertByEntityId(
-                msg.id,
-                full as any,
-              );
-              return full;
-            }),
+          const canFetchLiveGmail = await hasGmailRefreshToken(
+            ctx.session.user.id,
           );
-          const newRaw = fetched
-            .filter(
-              (result) =>
-                result.status === "fulfilled" && result.value !== null,
-            )
-            .map((result: any) => ({
-              ...result.value,
-              entity_id: result.value.id,
-              data: result.value,
-            })) as any;
-
-          const newMessages = dedupeAndSort(newRaw) as Record<
-            string,
-            unknown
-          >[];
-          enriched = enrichWithTriage(newMessages, []);
+          if (canFetchLiveGmail) {
+            const query =
+              input.priority === "starred" ? "is:starred" : "in:sent";
+            const fetched = await fetchMetadataBatch(tenant, 30, query);
+            const newMessages = dedupeAndSort(fetched) as Record<
+              string,
+              unknown
+            >[];
+            enriched = enrichWithTriage(newMessages, []);
+          }
         } catch (error) {
           console.error("Targeted sync failed", error);
         }
@@ -315,24 +430,22 @@ export const gmailRouter = createTRPCRouter({
 
   refresh: protectedProcedure.mutation(async ({ ctx }) => {
     const tenant = getTenant(ctx.session.user.id);
-    const response = await tenant.gmail.api.messages.list({ maxResults: 50 });
-    let synced = 0;
-    for (const msg of response.messages ?? []) {
-      if (msg.id) {
-        try {
-          const fullMsg = await tenant.gmail.api.messages.get({
-            id: msg.id,
-            format: "full",
-          });
-          const parsed = parseRawGoogleMessage(fullMsg);
-          await tenant.gmail.db.messages.upsertByEntityId(msg.id, parsed);
-          synced++;
-        } catch {
-          console.error("Failed to sync message during refresh", msg.id);
-        }
-      }
+    const canFetchLiveGmail = await hasGmailRefreshToken(ctx.session.user.id);
+
+    if (!canFetchLiveGmail) {
+      return { synced: 0, needsReconnect: true };
     }
-    return { synced };
+
+    try {
+      const messages = await fetchMetadataBatch(tenant, 50);
+      void triggerBackgroundTriage(ctx.session.user.id);
+      return { synced: messages.length, needsReconnect: false };
+    } catch (error) {
+      if (isCorsairAuthMissingError(error)) {
+        return { synced: 0, needsReconnect: true };
+      }
+      throw error;
+    }
   }),
 
   send: protectedProcedure
@@ -421,6 +534,7 @@ export const gmailRouter = createTRPCRouter({
           target: emailTriage.entityId,
           set: { isRead: true, updatedAt: new Date() },
         });
+      void invalidateTriageCache(ctx.session.user.id);
 
       return { syncedToGmail };
     }),
@@ -440,6 +554,7 @@ export const gmailRouter = createTRPCRouter({
           target: emailTriage.entityId,
           set: { isArchived: true, updatedAt: new Date() },
         });
+      void invalidateTriageCache(ctx.session.user.id);
     }),
 
   toggleStar: protectedProcedure
@@ -459,11 +574,12 @@ export const gmailRouter = createTRPCRouter({
           target: emailTriage.entityId,
           set: { isStarred: input.starred, updatedAt: new Date() },
         });
+      void invalidateTriageCache(ctx.session.user.id);
     }),
 
   snooze: protectedProcedure
     .input(SnoozeEmailSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       await db
         .insert(emailTriage)
         .values({
@@ -477,6 +593,7 @@ export const gmailRouter = createTRPCRouter({
             updatedAt: new Date(),
           },
         });
+      void invalidateTriageCache(ctx.session.user.id);
       return { snoozedUntil: input.snoozeUntil };
     }),
 });
