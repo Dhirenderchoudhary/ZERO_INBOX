@@ -3,40 +3,11 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/server/db";
 import { env } from "@/env";
 import * as schema from "@/server/db/schema";
-import { setupCorsair } from "corsair";
-import { corsair } from "@/server/corsair";
+import { initCorsair } from "@/server/corsair";
 import { dash } from "@better-auth/infra";
 import { triggerInboxSyncWorkflow } from "@/server/lib/qstash";
-
-async function syncGoogleTokens(account: any) {
-  if (account.providerId !== "google") return;
-
-  const tenant = corsair.withTenant(account.userId);
-  const tasks = [];
-
-  if (account.accessToken) {
-    tasks.push(tenant.gmail.keys.set_access_token(account.accessToken));
-    tasks.push(
-      tenant.googlecalendar.keys.set_access_token(account.accessToken),
-    );
-  }
-
-  if (account.refreshToken) {
-    tasks.push(tenant.gmail.keys.set_refresh_token(account.refreshToken));
-    tasks.push(
-      tenant.googlecalendar.keys.set_refresh_token(account.refreshToken),
-    );
-  }
-
-  if (account.accessTokenExpiresAt) {
-    const expires = account.accessTokenExpiresAt.toISOString();
-    tasks.push(tenant.gmail.keys.set_expires_at(expires));
-    tasks.push(tenant.googlecalendar.keys.set_expires_at(expires));
-  }
-
-  // Run all 6 DB updates in parallel to prevent blocking the OAuth login screen
-  await Promise.all(tasks);
-}
+import { syncGoogleTokensForAccount } from "@/server/lib/google-auth";
+import { GOOGLE_OAUTH_SCOPES } from "@/lib/google-scopes";
 
 export const auth = betterAuth({
   secret:
@@ -71,7 +42,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          void setupCorsair(corsair, { tenantId: user.id });
+          void initCorsair(user.id);
         },
       },
     },
@@ -79,7 +50,7 @@ export const auth = betterAuth({
       create: {
         after: async (session) => {
           // Fire and forget so we don't block login
-          void setupCorsair(corsair, { tenantId: session.userId });
+          void initCorsair(session.userId);
         },
       },
     },
@@ -87,7 +58,7 @@ export const auth = betterAuth({
       create: {
         after: async (account) => {
           if (account.providerId === "google") {
-            await syncGoogleTokens(account);
+            await syncGoogleTokensForAccount(account as any);
 
             // Fire and forget a background sync for the new user's inbox
             // Uses Upstash Workflow for durable execution
@@ -98,7 +69,7 @@ export const auth = betterAuth({
       update: {
         after: async (account) => {
           if (account.providerId === "google") {
-            await syncGoogleTokens(account);
+            await syncGoogleTokensForAccount(account as any);
           }
         },
       },
@@ -111,13 +82,7 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       accessType: "offline",
       prompt: "select_account consent",
-      scope: [
-        "https://www.googleapis.com/auth/gmail.send",
-        "https://www.googleapis.com/auth/gmail.labels",
-        "https://www.googleapis.com/auth/gmail.compose",
-        "https://www.googleapis.com/auth/gmail.modify",
-        "https://www.googleapis.com/auth/calendar",
-      ],
+      scope: [...GOOGLE_OAUTH_SCOPES],
     },
   },
   plugins: [dash()],

@@ -1,6 +1,5 @@
 import { generateOAuthUrl } from "corsair/oauth";
-import { setupCorsair } from "corsair";
-import { corsair } from "@/server/corsair";
+import { corsair, initCorsair } from "@/server/corsair";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { env } from "@/env";
@@ -21,14 +20,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await setupCorsair(corsair, { tenantId: session.user.id });
+    await initCorsair(session.user.id);
 
     const { url, state } = await generateOAuthUrl(corsair, plugin, {
       tenantId: session.user.id,
       redirectUri: REDIRECT_URI,
     });
+    const oauthUrl = new URL(url);
+    oauthUrl.searchParams.set("access_type", "offline");
+    oauthUrl.searchParams.set("prompt", "consent");
+    oauthUrl.searchParams.set("include_granted_scopes", "true");
 
-    const response = NextResponse.redirect(url);
+    const response = NextResponse.redirect(oauthUrl);
     response.headers.set("Cache-Control", "no-store, max-age=0");
     if (state) {
       response.cookies.set("oauth_state", state, {

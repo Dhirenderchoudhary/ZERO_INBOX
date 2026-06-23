@@ -18,8 +18,7 @@ export const corsair = createCorsair({
   multiTenancy: true,
 });
 
-// Run setup to sync all new corsair_accounts for the added integrations
-setupCorsair(corsair, {
+const corsairSetupPromise = setupCorsair(corsair, {
   credentials: {
     gmail: {
       client_id: process.env.GOOGLE_CLIENT_ID!,
@@ -39,4 +38,27 @@ setupCorsair(corsair, {
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
     },
   },
-}).catch(console.error);
+}).catch((error) => {
+  console.error("[corsair:setup] failed", error);
+  throw error;
+});
+
+const tenantSetupPromises = new Map<string, Promise<void>>();
+
+export async function initCorsair(tenantId?: string) {
+  await corsairSetupPromise;
+  if (!tenantId) return;
+
+  let tenantSetupPromise = tenantSetupPromises.get(tenantId);
+  if (!tenantSetupPromise) {
+    tenantSetupPromise = setupCorsair(corsair, { tenantId })
+      .then(() => undefined)
+      .catch((error) => {
+        tenantSetupPromises.delete(tenantId);
+        throw error;
+      });
+    tenantSetupPromises.set(tenantId, tenantSetupPromise);
+  }
+
+  await tenantSetupPromise;
+}

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { signIn } from "@/lib/auth-client";
+import { GOOGLE_OAUTH_SCOPES } from "@/lib/google-scopes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -115,6 +116,7 @@ export default function LandingPage() {
       const res = await signIn.social({
         provider: "google",
         callbackURL: "/dashboard",
+        scopes: [...GOOGLE_OAUTH_SCOPES],
       });
       if (res?.error) {
         setIsSigningIn(false);
