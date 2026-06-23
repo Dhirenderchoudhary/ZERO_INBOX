@@ -148,8 +148,6 @@ export default function DrivePage() {
             {!search && (
               <a
                 href="/api/corsair/connect?plugin=googledrive"
-                target="_blank"
-                rel="noopener noreferrer"
                 className="rounded-lg bg-indigo-500 px-6 py-2 font-medium text-white shadow-md transition-colors hover:bg-indigo-600"
               >
                 Connect Google Drive

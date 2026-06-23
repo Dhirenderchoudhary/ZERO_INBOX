@@ -26,6 +26,7 @@ import {
   SearchDriveSchema,
   ListGithubIssuesSchema,
   CreateGithubIssueSchema,
+  type AgentConfirmedAction,
 } from "../../lib/schemas";
 import {
   getAiSummaryCache,
@@ -39,6 +40,63 @@ import { triggerBackgroundTriage } from "../../lib/qstash";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "dummy_key_for_build",
 });
+
+const INJECTION_BLOCKED_REASON =
+  "I'm focused on Gmail, Calendar, Drive, and GitHub actions, so I can't follow instruction overrides or unrelated requests.";
+
+const INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?previous\s+instructions?/i,
+  /\bimportant\s+system\s+message\b/i,
+  /\bimportant\s+update\b[\s\S]*?instructions?/i,
+  /new\s+system\s+directive/i,
+  /you\s+are\s+no\s+longer\s+bound/i,
+  /developer\s+has\s+changed\s+your\s+system/i,
+  /<!--[\s\S]*?-->/,
+  /\[system\s*:/i,
+  /^#\s*(system|instruction)/im,
+];
+
+const SENSITIVE_OUTPUT_PATTERNS = [
+  /\b(?:\d[ -]*?){13,19}\b/,
+  /\b(?:sk|rk|pk|ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{16,}\b/,
+  /\b(?:access|refresh|id)_token\b/i,
+];
+
+function detectInjection(text: string): boolean {
+  return INJECTION_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function redactSensitiveOutput(text: string): string {
+  return SENSITIVE_OUTPUT_PATTERNS.reduce(
+    (safeText, pattern) => safeText.replace(pattern, "[redacted]"),
+    text,
+  );
+}
+
+function describePendingAction(action: AgentConfirmedAction): string {
+  if (action.type === "send_email") {
+    return [
+      "Review this email before I send it:",
+      `To: ${action.to}`,
+      `Subject: ${action.subject}`,
+      "",
+      action.body,
+    ].join("\n");
+  }
+
+  return [
+    "Review this calendar event before I create it:",
+    `Title: ${action.summary}`,
+    `Start: ${action.startTime}`,
+    `End: ${action.endTime}`,
+    action.attendees.length > 0
+      ? `Attendees: ${action.attendees.join(", ")}`
+      : "Attendees: none",
+    action.description ? `Description: ${action.description}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 let ratelimit: Ratelimit | null = null;
 if (
@@ -195,6 +253,19 @@ Respond with ONLY the category word. Nothing else.`,
   agentChat: protectedProcedure
     .input(AgentChatSchema)
     .mutation(async ({ input, ctx }) => {
+      const combinedInput = [
+        input.message,
+        ...input.history.map((message) => message.content),
+      ].join("\n");
+
+      if (detectInjection(combinedInput)) {
+        return {
+          reply: INJECTION_BLOCKED_REASON,
+          actionsExecuted: [],
+          thoughts: "Input guardrail blocked a prompt-injection pattern.",
+        };
+      }
+
       // ── Rate limiting (per user, 10 requests per minute) ──────────────────
       if (ratelimit) {
         const { success } = await ratelimit.limit(ctx.session.user.id);
@@ -232,6 +303,78 @@ Respond with ONLY the category word. Nothing else.`,
       const now = new Date();
       const IST = "Asia/Kolkata";
 
+      if (input.confirmedAction) {
+        const actionsExecuted: string[] = [];
+
+        if (input.confirmedAction.type === "send_email") {
+          const raw = encodeRawEmail({
+            to: input.confirmedAction.to,
+            subject: input.confirmedAction.subject,
+            body: input.confirmedAction.body,
+          });
+          await tenant.gmail.api.messages.send({ raw });
+          actionsExecuted.push(
+            `Sent email to ${input.confirmedAction.to}: "${input.confirmedAction.subject}"`,
+          );
+        } else {
+          await tenant.googlecalendar.api.events.create({
+            calendarId: "primary",
+            sendUpdates: input.confirmedAction.sendInvites ? "all" : "none",
+            event: {
+              summary: input.confirmedAction.summary,
+              description: input.confirmedAction.description,
+              start: {
+                dateTime: input.confirmedAction.startTime,
+                timeZone: IST,
+              },
+              end: {
+                dateTime: input.confirmedAction.endTime,
+                timeZone: IST,
+              },
+              attendees: input.confirmedAction.attendees.map((email) => ({
+                email,
+              })),
+            },
+          });
+          actionsExecuted.push(
+            `Created calendar event "${input.confirmedAction.summary}"`,
+          );
+        }
+
+        const replyText = "Done. I executed the confirmed action.";
+
+        await db.insert(agentMessages).values([
+          { role: "user", content: input.message, userId: ctx.session.user.id },
+          {
+            role: "assistant",
+            content: replyText,
+            actionsJson: JSON.stringify(actionsExecuted),
+            tokensUsed: 0,
+            userId: ctx.session.user.id,
+          },
+        ]);
+
+        await db
+          .insert(usage)
+          .values({
+            userId: ctx.session.user.id,
+            messagesUsed: 1,
+            resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          })
+          .onConflictDoUpdate({
+            target: usage.userId,
+            set: { messagesUsed: sql`${usage.messagesUsed} + 1` },
+          });
+
+        void invalidateDashboardCache(ctx.session.user.id);
+
+        return {
+          reply: replyText,
+          actionsExecuted,
+          thoughts: "Executed after explicit user confirmation.",
+        };
+      }
+
       const systemPrompt = `You are FlowMail Agent — an AI that controls the user's Gmail and Google Calendar.
 You have access to native tools to send emails and create calendar events.
 Rules:
@@ -241,6 +384,7 @@ Rules:
 - "tomorrow" = ${new Date(Date.now() + 86400000).toLocaleDateString("en-IN", { timeZone: IST })}
 - Always default event duration to 1 hour unless specified
 - Write email bodies in a warm, professional tone.
+- Never claim that an email was sent or a calendar event was created until the user explicitly confirms the proposed action.
 - If anyone asks who your owner, creator, or developer is, strictly reply that you were created by Dhirender Choudhary.
 - STRICT LIMITATION: You must ONLY discuss and assist with topics related to Google Calendar, scheduling, and Emails. 
 - If the user asks about ANY other topic (general knowledge, coding, chit-chat, etc.), politely and professionally decline to answer, explaining that you are specialized for email and calendar management.
@@ -385,6 +529,7 @@ Rules:
       const message = choice!.message;
       let replyText = message.content ?? "I have processed your request.";
       const actionsExecuted: string[] = [];
+      let pendingAction: AgentConfirmedAction | undefined;
 
       if (message.tool_calls && message.tool_calls.length > 0) {
         messages.push(message as any);
@@ -415,9 +560,10 @@ Rules:
               actionsExecuted.push(`Fetched ${deduped.length} recent emails.`);
             } else if (tc.function.name === "send_email") {
               const { to, subject, body } = AISendEmailSchema.parse(args);
-              const raw = encodeRawEmail({ to, subject, body });
-              await tenant.gmail.api.messages.send({ raw });
-              actionsExecuted.push(`Sent email to ${to} — "${subject}"`);
+              pendingAction = { type: "send_email", to, subject, body };
+              toolResult =
+                "Email prepared. Waiting for explicit user confirmation before sending.";
+              actionsExecuted.push(`Prepared email to ${to}: "${subject}"`);
             } else if (tc.function.name === "create_event") {
               const {
                 summary,
@@ -427,25 +573,19 @@ Rules:
                 attendees,
                 sendInvites,
               } = AICreateEventSchema.parse(args);
-              await tenant.googlecalendar.api.events.create({
-                calendarId: "primary",
-                sendUpdates: sendInvites ? "all" : "none",
-                event: {
-                  summary,
-                  description,
-                  start: {
-                    dateTime: startTime,
-                    timeZone: IST,
-                  },
-                  end: {
-                    dateTime: endTime,
-                    timeZone: IST,
-                  },
-                  attendees: attendees.map((e) => ({ email: e })),
-                },
-              });
+              pendingAction = {
+                type: "create_event",
+                summary,
+                description,
+                startTime,
+                endTime,
+                attendees,
+                sendInvites,
+              };
+              toolResult =
+                "Calendar event prepared. Waiting for explicit user confirmation before creating it.";
               actionsExecuted.push(
-                `Created "${summary}" with ${attendees.length} attendee(s)`,
+                `Prepared calendar event "${summary}" with ${attendees.length} attendee(s)`,
               );
             } else if (tc.function.name === "search_drive") {
               const { query } = SearchDriveSchema.parse(args);
@@ -497,23 +637,29 @@ Rules:
           });
         }
 
-        // Call OpenAI again to get the final summary
-        const secondResponse = await openai.chat.completions.create({
-          model: "gpt-4o",
-          max_tokens: 1000,
-          messages,
-        });
+        if (pendingAction) {
+          replyText = describePendingAction(pendingAction);
+        } else {
+          // Call OpenAI again to get the final summary
+          const secondResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            max_tokens: 1000,
+            messages,
+          });
 
-        replyText =
-          secondResponse.choices[0]?.message?.content ??
-          `I have successfully executed the following actions:\n${actionsExecuted.join("\n")}`;
+          replyText =
+            secondResponse.choices[0]?.message?.content ??
+            `I have successfully executed the following actions:\n${actionsExecuted.join("\n")}`;
+        }
       }
+
+      const safeReplyText = redactSensitiveOutput(replyText);
 
       await db.insert(agentMessages).values([
         { role: "user", content: input.message, userId: ctx.session.user.id },
         {
           role: "assistant",
-          content: replyText,
+          content: safeReplyText,
           actionsJson: JSON.stringify(actionsExecuted),
           tokensUsed: response.usage?.total_tokens ?? 0,
           userId: ctx.session.user.id,
@@ -536,9 +682,13 @@ Rules:
       void invalidateDashboardCache(ctx.session.user.id);
 
       return {
-        reply: replyText,
+        reply: safeReplyText,
         actionsExecuted,
-        thoughts: "OpenAI native tools utilized.",
+        pendingAction,
+        thoughts:
+          safeReplyText === replyText
+            ? "OpenAI native tools utilized."
+            : "Output guardrail redacted sensitive data.",
       };
     }),
 

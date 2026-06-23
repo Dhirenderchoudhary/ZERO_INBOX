@@ -7,6 +7,8 @@ import {
   MessageCircle,
   Send,
   X,
+  Check,
+  Copy,
   Loader2,
   Sparkles,
   User,
@@ -20,11 +22,33 @@ import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { useEmailStore } from "@/hooks/useEmailStore";
 
+type PendingAction =
+  | {
+      type: "send_email";
+      to: string;
+      subject: string;
+      body: string;
+    }
+  | {
+      type: "create_event";
+      summary: string;
+      description?: string;
+      startTime: string;
+      endTime: string;
+      attendees: string[];
+      sendInvites: boolean;
+    };
+
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  actions?: string[];
+  pendingAction?: PendingAction;
+};
+
 export function FloatingChat() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<
-    { role: "user" | "assistant"; content: string; actions?: string[] }[]
-  >([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -48,6 +72,7 @@ export function FloatingChat() {
           role: "assistant",
           content: data.reply,
           actions: data.actionsExecuted,
+          pendingAction: data.pendingAction,
         },
       ]);
     },
@@ -73,6 +98,43 @@ export function FloatingChat() {
       history: messages.map((m) => ({ role: m.role, content: m.content })),
     });
     setInput("");
+  };
+
+  const confirmAction = (pendingAction: PendingAction) => {
+    if (chat.isPending) return;
+    const content =
+      pendingAction.type === "send_email"
+        ? `Confirm sending email to ${pendingAction.to}`
+        : `Confirm creating "${pendingAction.summary}"`;
+    setMessages((prev) => [
+      ...prev.map((message) => ({ ...message, pendingAction: undefined })),
+      { role: "user", content },
+    ]);
+    chat.mutate({
+      message: "confirm",
+      history: messages.map((m) => ({ role: m.role, content: m.content })),
+      confirmedAction: pendingAction,
+    });
+  };
+
+  const cancelAction = (index: number) => {
+    setMessages((prev) =>
+      prev.map((message, messageIndex) =>
+        messageIndex === index
+          ? { ...message, pendingAction: undefined }
+          : message,
+      ),
+    );
+    toast.message("Action cancelled");
+  };
+
+  const copyMessage = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success("Copied");
+    } catch {
+      toast.error("Copy failed");
+    }
   };
 
   const { composeOpen } = useEmailStore();
@@ -150,14 +212,55 @@ export function FloatingChat() {
                       <div className="flex max-w-[80%] flex-col gap-1">
                         <div
                           className={cn(
-                            "rounded-2xl px-4 py-2 text-sm",
+                            "group/message relative rounded-2xl px-4 py-2 pr-9 text-sm",
                             m.role === "user"
                               ? "bg-primary text-primary-foreground rounded-tr-sm"
                               : "bg-muted rounded-tl-sm",
                           )}
                         >
-                          {m.content}
+                          <div
+                            className={cn(
+                              "break-words whitespace-pre-wrap select-text",
+                              m.role === "user"
+                                ? "selection:bg-primary-foreground/25 selection:text-primary-foreground"
+                                : "selection:bg-primary/20 selection:text-foreground",
+                            )}
+                          >
+                            {m.content}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-xs"
+                            className="absolute top-1.5 right-1.5 opacity-0 transition-opacity group-hover/message:opacity-100 focus-visible:opacity-100"
+                            onClick={() => copyMessage(m.content)}
+                          >
+                            <Copy size={11} />
+                            <span className="sr-only">Copy message</span>
+                          </Button>
                         </div>
+                        {m.pendingAction && (
+                          <div className="border-border/70 bg-background mt-1 flex flex-wrap gap-1 rounded-xl border p-1.5 shadow-sm">
+                            <Button
+                              type="button"
+                              size="xs"
+                              onClick={() => confirmAction(m.pendingAction!)}
+                              disabled={chat.isPending}
+                            >
+                              <Check size={12} />
+                              Confirm
+                            </Button>
+                            <Button
+                              type="button"
+                              size="xs"
+                              variant="outline"
+                              onClick={() => cancelAction(i)}
+                              disabled={chat.isPending}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
                         {m.actions && m.actions.length > 0 && (
                           <div className="mt-1 flex flex-col gap-1">
                             {m.actions.map((act, j) => (

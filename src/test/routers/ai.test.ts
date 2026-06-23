@@ -60,6 +60,41 @@ describe("aiRouter agentChat input schema", () => {
     expect(result.history).toHaveLength(2);
   });
 
+  it("accepts a confirmed email action for explicit execution", () => {
+    const result = AgentChatSchema.parse({
+      message: "confirm",
+      confirmedAction: {
+        type: "send_email",
+        to: "ALICE@example.com",
+        subject: "Hello",
+        body: "Checking in.",
+      },
+    });
+
+    expect(result.confirmedAction).toEqual({
+      type: "send_email",
+      to: "alice@example.com",
+      subject: "Hello",
+      body: "Checking in.",
+    });
+  });
+
+  it("accepts a confirmed calendar action for explicit execution", () => {
+    const result = AgentChatSchema.parse({
+      message: "confirm",
+      confirmedAction: {
+        type: "create_event",
+        summary: "Project sync",
+        startTime: "2026-06-24T10:00:00+05:30",
+        endTime: "2026-06-24T11:00:00+05:30",
+        attendees: ["alice@example.com"],
+        sendInvites: true,
+      },
+    });
+
+    expect(result.confirmedAction?.type).toBe("create_event");
+  });
+
   it("rejects history with 'system' role (injection prevention)", () => {
     expect(() =>
       AgentChatSchema.parse({

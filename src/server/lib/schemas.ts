@@ -97,12 +97,40 @@ export const AgentHistoryItemSchema = z.object({
     .transform(sanitizeMessage),
 });
 
+export const AgentConfirmedActionSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("send_email"),
+    to: EmailAddressSchema,
+    subject: z.string().trim().min(1).max(255),
+    body: z.string().trim().min(1).max(10_000),
+  }),
+  z
+    .object({
+      type: z.literal("create_event"),
+      summary: z.string().trim().min(1).max(200),
+      description: z.string().trim().max(5000).optional().default(""),
+      startTime: z
+        .string()
+        .refine((v) => !isNaN(Date.parse(v)), "Invalid start time"),
+      endTime: z
+        .string()
+        .refine((v) => !isNaN(Date.parse(v)), "Invalid end time"),
+      attendees: z.array(EmailAddressSchema).max(50).default([]),
+      sendInvites: z.boolean().default(true),
+    })
+    .refine((data) => new Date(data.endTime) > new Date(data.startTime), {
+      message: "End time must be after start time",
+      path: ["endTime"],
+    }),
+]);
+
 export const AgentChatSchema = z.object({
   message: AgentMessageContentSchema,
   history: z
     .array(AgentHistoryItemSchema)
     .max(50, "History is too long")
     .default([]),
+  confirmedAction: AgentConfirmedActionSchema.optional(),
 });
 
 // ─── Gmail / Email Schemas ───────────────────────────────────────────────────
@@ -269,6 +297,7 @@ export type SendEmailInput = z.infer<typeof SendEmailSchema>;
 export type ScheduledEmailInput = z.infer<typeof ScheduledEmailSchema>;
 export type CalendarEventInput = z.infer<typeof CalendarEventSchema>;
 export type AgentChatInput = z.infer<typeof AgentChatSchema>;
+export type AgentConfirmedAction = z.infer<typeof AgentConfirmedActionSchema>;
 export type TriageOneInput = z.infer<typeof TriageOneSchema>;
 
 // ─── AI Tool Argument Schemas ────────────────────────────────────────────────
