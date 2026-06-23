@@ -65,14 +65,26 @@ async function ensureGoogleTokensSyncedForUser(userId: string) {
 }
 
 export async function hasGmailRefreshToken(userId: string) {
-  await ensureGoogleTokensSyncedForUser(userId);
+  const googleAccount = await db.query.account.findFirst({
+    where: eq(account.userId, userId),
+  });
+
+  if (googleAccount?.providerId === "google" && googleAccount.refreshToken) {
+    return true;
+  }
 
   try {
-    const token = await corsair
-      .withTenant(userId)
-      .gmail.keys.get_refresh_token();
+    const token = await Promise.race([
+      corsair.withTenant(userId).gmail.keys.get_refresh_token(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+    ]);
     return typeof token === "string" && token.length > 0;
   } catch {
     return false;
   }
+}
+
+export async function ensureGmailRefreshToken(userId: string) {
+  await ensureGoogleTokensSyncedForUser(userId);
+  return hasGmailRefreshToken(userId);
 }

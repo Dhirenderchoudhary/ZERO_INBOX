@@ -26,6 +26,7 @@ import { scheduleEmailViaQStash } from "../../lib/qstash";
 import { triggerBackgroundTriage } from "../../lib/qstash";
 import { invalidateTriageCache } from "../../lib/cache";
 import {
+  ensureGmailRefreshToken,
   hasGmailRefreshToken,
   isCorsairAuthMissingError,
 } from "../../lib/google-auth";
@@ -430,7 +431,9 @@ export const gmailRouter = createTRPCRouter({
 
   refresh: protectedProcedure.mutation(async ({ ctx }) => {
     const tenant = getTenant(ctx.session.user.id);
-    const canFetchLiveGmail = await hasGmailRefreshToken(ctx.session.user.id);
+    const canFetchLiveGmail = await ensureGmailRefreshToken(
+      ctx.session.user.id,
+    );
 
     if (!canFetchLiveGmail) {
       return { synced: 0, needsReconnect: true };
