@@ -146,6 +146,7 @@ export default function DrivePage() {
                 : "Your Google Drive seems empty or isn't connected properly."}
             </p>
             {!search && (
+              // eslint-disable-next-line @next/next/no-html-link-for-pages
               <a
                 href="/api/corsair/connect?plugin=googledrive"
                 className="rounded-lg bg-indigo-500 px-6 py-2 font-medium text-white shadow-md transition-colors hover:bg-indigo-600"
