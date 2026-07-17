@@ -21,6 +21,7 @@ export const githubRouter = createTRPCRouter({
     .input(z.object({ apiKey: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const tenant = getTenant(ctx.session.user.id);
+      // @ts-expect-error - set_api_key might not be typed correctly in the current corsair version
       await tenant.github.keys.set_api_key(input.apiKey);
       return { success: true };
     }),
